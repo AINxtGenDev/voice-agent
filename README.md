@@ -5,6 +5,7 @@ Planning repository for a mobile-first customer conversation assistant using Ope
 **Status:** implementation plan only. No operational calling, customer database, or email service is implemented.
 
 - [Implementation plan](PLAN.md)
+- [API key setup and next steps](NEXT_STEPS.md)
 - [Public project overview](https://ainxtgendev.github.io/voice-agent/)
 
 GitHub Pages publishes only `docs/`. Never commit customers, phone numbers, transcripts, reports, credentials, or private operational configuration. The production customer application requires an authenticated backend and suitable application hosting.
