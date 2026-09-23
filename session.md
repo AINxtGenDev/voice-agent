@@ -6,6 +6,8 @@ This is a public project status record. Keep credentials, customer information, 
 
 ## Saved Contact Dropdown and Logo Control Update
 
+- Published as `129893d`; GitHub Pages build completed and public HTML matched the committed file. Added the three user-requested contacts through the live form in the connected browser profile and confirmed all three dropdown entries persisted after reload. No contact details were committed or uploaded. Browser session was closed.
+
 - Added a saved-name dropdown above Full name. Selecting a saved contact fills its name, phone number, and product; saving updates the selected record.
 - Contacts now persist in browser localStorage on the current device/profile. No contact values are embedded in source or uploaded. The user requested three initial contacts; their personal details are intentionally excluded from this public record.
 - Removed the visible rotation pause control at the user's request. The slow logo animation retains a reduced-motion CSS override.
