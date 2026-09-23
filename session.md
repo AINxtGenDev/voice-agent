@@ -4,6 +4,12 @@ Updated: 2026-09-23 (Europe/Vienna).
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
+## Website Section Removal — 2026-09-23
+
+- Removed the development-status panel, FAQ, and project telephone-number section as shown in the user's screenshot, together with their navigation/footer links.
+- Preserved the rotating logo, product selection, saved-contact dropdown and form, planned workflow, and independent-project footer.
+- This supersedes earlier descriptions listing those removed sections. Contact storage behavior and voice readiness are unchanged.
+
 ## Current Handoff
 
 - Website updates are deployed on GitHub Pages. The saved-name dropdown is above Full name; selection fills contact details and the stored product.
