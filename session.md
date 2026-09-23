@@ -6,6 +6,8 @@ This is a public project status record. Keep credentials, customer information, 
 
 ## Conversation Button — 2026-09-23
 
+- Published as `19d9c41`. Verified the public HTML matched the committed page. Desktop and 320px mobile checks passed without horizontal overflow; the button was confirmed disabled.
+
 - Added a large full-width button labeled "... start conversation" below the contact form.
 - The control is disabled and explains that telephone calling is not connected. No call API, customer call, or message is triggered. Enable only after the voice integration and required checks are complete.
 - Previous section removal was deployed as `6cb06e6`; public HTML matched and desktop/320px layout checks passed.
@@ -16,13 +18,20 @@ This is a public project status record. Keep credentials, customer information, 
 - Preserved the rotating logo, product selection, saved-contact dropdown and form, planned workflow, and independent-project footer.
 - This supersedes earlier descriptions listing those removed sections. Contact storage behavior and voice readiness are unchanged.
 
+## Session Update Preference
+
+- User requested automatic session-record updates, commits, and pushes after meaningful progress. Apply this within the authorized task scope; review staged content and exclude personal contact details, credentials, private paths, and unrelated application work.
+- This is a working preference for assisted sessions, not a background service or scheduled job.
+
 ## Current Handoff
 
 - Website updates are deployed on GitHub Pages. The saved-name dropdown is above Full name; selection fills contact details and the stored product.
 - Three requested contacts were saved and verified in the connected browser profile. They will not automatically appear on another device or profile. Refresh an already open page to load the latest UI; browser-local saved contacts survive reload.
 - The logo rotates slowly without a visible pause control. Reduced-motion preferences disable animation through CSS.
 - No telephone calls or messages were initiated by the website work. Voice integration remains unfinished.
-- The latest task is a session-record update only. Preserve unrelated uncommitted prototype changes; this publication contains no personal contact details.
+- Latest website commit: `19d9c41`, adding the large "... start conversation" button below the form. Public HTML was verified to match after deployment. The button remains disabled until telephone integration is ready.
+- The development-status panel, FAQ, and telephone-number section were removed in `6cb06e6`. Their navigation links were removed as well.
+- Preserve unrelated uncommitted prototype changes; this public record contains no personal contact details.
 
 ## Saved Contact Dropdown and Logo Control Update
 
@@ -51,7 +60,7 @@ This is a public project status record. Keep credentials, customer information, 
 
 - Live website: [Voice Agent](https://ainxtgendev.github.io/voice-agent/).
 - GitHub Pages publishes `docs/` from `main`. The repository remains public.
-- Initial website commit: `cc694b9`. Latest functional website publication: `129893d`. Deployment verification recorded in `483cb36`.
+- Initial website commit: `cc694b9`. Latest functional website publication: `19d9c41`. Saved-contact deployment verification was recorded in `483cb36`.
 - Deployment completed successfully. The public HTTPS response returned HTTP 200 and its HTML matched the committed website exactly.
 - The site includes the animated HPE logo without a pause button, browser-saved contact form and name dropdown, product selector, planned workflow, development status, FAQ, and approved project telephone number. The introductory hero and illustrative conversation were removed at the user's request.
 - Desktop and mobile layouts were inspected. A 320-pixel viewport had no horizontal overflow; keyboard focus, FAQ keyboard interaction, and in-page anchor targets passed checks. Whitespace checks passed.
