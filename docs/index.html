@@ -21,6 +21,7 @@
     @media(min-width:760px){.workspace-intro{padding:34px 38px}.workspace-body{padding:32px 38px;grid-template-columns:1fr 1fr;gap:40px}.product-field{grid-column:1/-1}.product-field select{font-size:21px}.entry-form{grid-template-columns:1fr 1fr}.entry-form .full{grid-column:1/-1}}
     @media(max-width:640px){.brand-lockup{gap:16px}.brand{font-size:17px}.logo-stage{min-width:110px}.hpe-logo{width:110px}.workspace-intro,.workspace-body{padding:22px 18px}.workspace-intro h2{font-size:30px}.product-field select{font-size:14px;padding-left:10px}.contact-card{flex-wrap:wrap}}
     @media(prefers-reduced-motion:reduce){.hpe-logo{animation:none}}
+    .conversation-launch{padding:0 24px 30px}.start-conversation{display:block;width:100%;min-height:100px;padding:24px 18px;border:0;border-radius:16px;background:linear-gradient(110deg,#08765e,#075d50);color:white;font:700 clamp(24px,4vw,44px)/1.2 system-ui,sans-serif;letter-spacing:-.025em;box-shadow:0 10px 24px #075d501c}.start-conversation:disabled{cursor:not-allowed}.conversation-launch p{margin:14px 0 0;text-align:center;color:var(--muted);font-size:14px}@media(min-width:760px){.conversation-launch{padding:0 38px 36px}.start-conversation{min-height:120px}}@media(max-width:640px){.conversation-launch{padding:0 18px 24px}}
   </style>
 </head>
 <body>
@@ -46,6 +47,10 @@
           <noscript><p>Enable JavaScript to use saved contacts. Contact submission is unavailable without it.</p></noscript>
         </form>
         <div><h3 class="contact-list-title">Saved contacts <span id="contact-count" class="contact-count">(0)</span></h3><p id="empty-contacts" class="empty-contacts">Saved contacts will appear here and in the name dropdown.</p><ul id="contact-list" class="contact-list" aria-label="Saved contacts"></ul></div>
+      </div>
+      <div class="conversation-launch">
+        <button class="start-conversation" type="button" disabled aria-describedby="conversation-availability">... start conversation</button>
+        <p id="conversation-availability">Telephone calling is not connected yet. This button will become available when the voice integration is ready.</p>
       </div>
     </section>
     <div class="strip" aria-label="Project principles"><div><strong>One topic at a time</strong><span>Focused, purposeful conversations</span></div><div><strong>Designed for mobile</strong><span>From preparation to follow-up</span></div><div><strong>Clear project status</strong><span>Verified capabilities, visible next steps</span></div></div>

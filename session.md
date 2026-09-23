@@ -4,6 +4,12 @@ Updated: 2026-09-23 (Europe/Vienna).
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
+## Conversation Button — 2026-09-23
+
+- Added a large full-width button labeled "... start conversation" below the contact form.
+- The control is disabled and explains that telephone calling is not connected. No call API, customer call, or message is triggered. Enable only after the voice integration and required checks are complete.
+- Previous section removal was deployed as `6cb06e6`; public HTML matched and desktop/320px layout checks passed.
+
 ## Website Section Removal — 2026-09-23
 
 - Removed the development-status panel, FAQ, and project telephone-number section as shown in the user's screenshot, together with their navigation/footer links.
