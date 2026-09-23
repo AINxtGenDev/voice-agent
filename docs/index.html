@@ -11,29 +11,40 @@
     @media(max-width:850px){.hero{gap:30px;padding:60px 0}.hero h1{font-size:52px}.conversation{transform:none}.section-title{display:block}.section-title p{max-width:600px}.questions{gap:30px}.status-section{padding:30px}}
     @media(max-width:640px){.wrap{width:calc(100% - 36px)}.header-inner{min-height:76px;gap:8px;flex-wrap:wrap;padding:14px 0}nav{gap:18px;width:100%}nav a{font-size:13px;display:inline-flex;align-items:center;min-height:36px}.hero{grid-template-columns:1fr;padding:44px 0;gap:35px}.hero h1{font-size:clamp(43px,10vw,62px)}.lead{font-size:17px}.conversation{max-width:460px;width:100%;margin:auto}.strip{grid-template-columns:1fr;gap:17px}.strip strong,.strip span{display:inline}.strip span:before{content:' / '}.steps,.status-grid,.questions{grid-template-columns:1fr;gap:28px}section.content{padding:48px 0}.step .label{margin-bottom:12px}.status-section{padding:26px 22px;border-radius:12px}.section-title{margin-bottom:26px}.contact{display:block;padding-bottom:35px}.phone{display:inline-block;margin-top:14px}.footer-inner{display:block}.footer-links{margin-top:18px}}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+    /* Colorful product workspace; system fonts and no external services. */
+    :root{--blue:#075d50;--sky:#e2faf0;--paper:#f4f8fc;--ink:#142b40;--line:#cddfdf}
+    body{background:radial-gradient(ellipse at 8% 9%,#bff7e380,transparent 35%),radial-gradient(ellipse at 95% 24%,#d4cbff70,transparent 40%),var(--paper)}
+    header{background:#ffffffed}.header-inner{min-height:108px}.brand-lockup{display:flex;align-items:center;gap:24px;flex-wrap:wrap}.logo-stage{perspective:800px;display:grid;place-items:center;min-width:132px;min-height:65px}.hpe-logo{width:132px;height:auto;animation:logo-turn 24s linear infinite;transform-style:preserve-3d}.motion-toggle{font:inherit;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:5px;background:white;padding:6px 10px;cursor:pointer}.hpe-logo.paused{animation-play-state:paused}@keyframes logo-turn{to{transform:rotateY(360deg)}}
+    .hero h1 span{color:#08785f}.button{background:#075d50}.button.secondary{background:white}.signal{background:linear-gradient(160deg,#d7f9e9,#eae2ff,white)}.signal i{background:#6470d9}.status-section{background:linear-gradient(120deg,#123c43,#243666)}
+    .workspace{margin:12px 0 28px;border:1px solid var(--line);background:white;border-radius:24px;overflow:hidden;box-shadow:0 20px 65px #1947430a}.workspace-intro{padding:28px;background:linear-gradient(115deg,#d8f8e9,#e5eaff 65%,#f2def5)}.workspace-intro h2{margin-top:8px}.workspace-intro p{max-width:650px;margin-bottom:0;color:var(--muted)}.workspace-body{padding:24px;display:grid;gap:28px}.product-field label{font-size:17px;font-weight:700;display:block;margin-bottom:10px}.product-field select{width:100%;min-height:72px;padding:14px 42px 14px 18px;border:2px solid #078363;background:#f1fcf7;border-radius:12px;color:var(--ink);font:600 16px system-ui,sans-serif;cursor:pointer}.product-help{font-size:13px;color:var(--muted);margin:8px 0 0}.entry-form{display:grid;gap:18px}.field label{display:block;font-size:14px;font-weight:650;margin-bottom:7px}.field input{width:100%;min-height:52px;border:1px solid #8dabab;border-radius:8px;padding:12px 14px;font:16px system-ui,sans-serif;background:white;color:var(--ink)}input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid #7453d2;outline-offset:3px}.field small{display:block;margin-top:6px;color:var(--muted)}.entry-form .button{min-height:50px;cursor:pointer;font-family:inherit}.form-note{margin:0;font-size:13px;color:var(--muted)}.form-status{min-height:26px;margin:0;color:#075d50;font-weight:600;font-size:14px}.contact-list{list-style:none;margin:0;padding:0;display:grid;gap:12px}.contact-card{border:1px solid var(--line);border-left:4px solid #8260c9;border-radius:9px;padding:16px;display:flex;justify-content:space-between;gap:14px;align-items:start;background:#faf9ff}.contact-card div{min-width:0;overflow-wrap:anywhere}.contact-card strong,.contact-card span{display:block}.contact-card span{font-size:14px;color:var(--muted)}.remove-contact{background:white;border:1px solid var(--line);padding:10px;border-radius:6px;color:var(--ink);cursor:pointer;font:13px system-ui,sans-serif;min-height:44px}.contact-list-title{font-size:17px}.empty-contacts{color:var(--muted);font-size:14px}.workspace [hidden]{display:none}.contact-count{font:12px ui-monospace,monospace;color:var(--muted)}
+    @media(min-width:760px){.workspace-intro{padding:34px 38px}.workspace-body{padding:32px 38px;grid-template-columns:1fr 1fr;gap:40px}.product-field{grid-column:1/-1}.product-field select{font-size:21px}.entry-form{grid-template-columns:1fr 1fr}.entry-form .full{grid-column:1/-1}}
+    @media(max-width:640px){.brand-lockup{gap:16px}.brand{font-size:17px}.logo-stage{min-width:110px}.hpe-logo{width:110px}.workspace-intro,.workspace-body{padding:22px 18px}.workspace-intro h2{font-size:30px}.product-field select{font-size:14px;padding-left:10px}.contact-card{flex-wrap:wrap}}
+    @media(prefers-reduced-motion:reduce){.hpe-logo{animation:none}.motion-toggle{display:none}}
   </style>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
   <header>
     <div class="wrap header-inner">
-      <a class="brand" href="#" aria-label="Voice Agent home"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>Voice Agent</a>
-      <nav aria-label="Main navigation"><a href="#workflow">How it works</a><a href="#progress">Progress</a><a href="#questions">Questions</a></nav>
+      <div class="brand-lockup"><div class="logo-stage"><img class="hpe-logo" src="assets/hpe-logo.webp" width="808" height="406" alt="HPE"><button class="motion-toggle" id="logo-motion" type="button" aria-pressed="false">Pause rotation</button></div><a class="brand" href="#" aria-label="Voice Agent home"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>Voice Agent</a></div>
+      <nav aria-label="Main navigation"><a href="#prepare">Add a contact</a><a href="#workflow">Workflow</a><a href="#progress">Progress</a><a href="#questions">Questions</a></nav>
     </div>
   </header>
   <main id="main" class="wrap">
-    <section class="hero" aria-labelledby="hero-title">
-      <div>
-        <p class="eyebrow"><span class="dot" aria-hidden="true"></span>Independent project · In development</p>
-        <h1 id="hero-title">Every conversation.<br><span>A clear next step.</span></h1>
-        <p class="lead">A voice assistant being built to listen to customer needs, keep the conversation focused, and make follow-up easier.</p>
-        <div class="actions"><a class="button" href="#workflow">Explore the workflow <span aria-hidden="true">↗</span></a><a class="button secondary" href="#progress">See what works today</a></div>
-        <p class="small hero-note">Local prototype available. Telephone voice integration in progress.</p>
-      </div>
-      <div class="conversation" aria-label="Illustrative conversation, not a live demonstration">
-        <div class="conversation-top"><strong>A focused conversation</strong><span class="pill">Illustrative example</span></div>
-        <div class="signal" aria-hidden="true"><i style="--h:10px"></i><i style="--h:20px"></i><i style="--h:14px"></i><i style="--h:33px"></i><i style="--h:48px"></i><i style="--h:25px"></i><i style="--h:40px"></i><i style="--h:57px"></i><i style="--h:32px"></i><i style="--h:20px"></i><i style="--h:43px"></i><i style="--h:29px"></i><i style="--h:16px"></i><i style="--h:34px"></i><i style="--h:48px"></i><i style="--h:24px"></i><i style="--h:12px"></i><i style="--h:18px"></i><i style="--h:8px"></i></div>
-        <div class="transcript"><p class="speaker">ASSISTANT</p><p class="bubble">What would you like to understand before taking the next step?</p><p class="speaker">CUSTOMER</p><p class="bubble answer">How it fits our existing systems, and what a first pilot would involve.</p><div class="outcome"><span class="check" aria-hidden="true">↗</span><div><b>A useful next step</b>Arrange a technical discussion about integration and pilot scope.</div></div></div>
+    <section id="prepare" class="workspace" aria-labelledby="prepare-title">
+      <div class="workspace-intro"><span class="label">Your next conversation</span><h2 id="prepare-title">A person. A product. A starting point.</h2><p>Choose a product and add contact details to prepare your conversation.</p></div>
+      <div class="workspace-body">
+        <div class="product-field"><label for="product">What would you like to discuss?</label><select id="product" name="product" form="contact-entry" aria-describedby="product-help"><option value="HPE Private Cloud AI">HPE Private Cloud AI</option><option value="HPE Storage Alletra MP X10000">HPE Storage Alletra MP X10000</option><option value="HPE Networking">HPE Networking</option></select><p id="product-help" class="product-help">Selected: HPE Private Cloud AI. Included with each contact you add.</p></div>
+        <form id="contact-entry" class="entry-form" aria-describedby="contact-note">
+          <div class="field"><label for="contact-name">Full name</label><input id="contact-name" name="name" autocomplete="name" maxlength="100" required placeholder="Enter a name"></div>
+          <div class="field"><label for="contact-phone">Phone number</label><input id="contact-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="30" required placeholder="+43 …" aria-describedby="phone-help"><small id="phone-help">Include the country code, starting with +.</small></div>
+          <p id="contact-note" class="form-note full">Temporary list only: contacts stay in this open page and are cleared when you reload or close it. Nothing is sent to a server. Adding a contact does not start a call or send a message.</p>
+          <button id="add-contact" class="button full" type="submit" disabled>Add contact to this page <span aria-hidden="true">＋</span></button>
+          <p id="form-status" class="form-status full" role="status" aria-live="polite"></p>
+          <noscript><p>Enable JavaScript to use the temporary contact list. Contact submission is unavailable without it.</p></noscript>
+        </form>
+        <div><h3 class="contact-list-title">Prepared contacts <span id="contact-count" class="contact-count">(0)</span></h3><p id="empty-contacts" class="empty-contacts">Your contacts will appear here with their selected product.</p><ul id="contact-list" class="contact-list" aria-label="Prepared contacts"></ul></div>
       </div>
     </section>
     <div class="strip" aria-label="Project principles"><div><strong>One topic at a time</strong><span>Focused, purposeful conversations</span></div><div><strong>Designed for mobile</strong><span>From preparation to follow-up</span></div><div><strong>Clear project status</strong><span>Verified capabilities, visible next steps</span></div></div>
@@ -47,10 +58,76 @@
     </section>
     <section id="questions" class="content questions" aria-labelledby="questions-title">
       <div><span class="label">Before you try it</span><h2 id="questions-title">A few useful answers.</h2><p>This is a public project overview, not the operational customer application.</p></div>
-      <div><details open><summary>Can I call the voice assistant now?</summary><p>A public voice demo is not available yet. The Twilio number is voice-enabled, but a successful conversation with the assistant has not been verified.</p></details><details><summary>Does this website collect customer information?</summary><p>This page has no customer forms, microphone access, analytics scripts, or application database connection. The hosting provider may retain standard access logs.</p></details><details><summary>Is this an official HPE service?</summary><p>No. This is an independent project. The proposed use case includes customer conversations about HPE Private Cloud AI; no HPE endorsement or authorization to represent HPE is implied.</p></details><details><summary>Where can I read the technical background?</summary><p>The <a href="https://github.com/AINxtGenDev/voice-agent/blob/main/PLAN.md">implementation plan</a> describes the proposed architecture. Twilio documents the <a href="https://www.twilio.com/docs/global-infrastructure/messaging-api-with-twilio-regions">regional messaging configuration</a> used for the successful SMS test. Repository access depends on its visibility settings.</p></details></div>
+      <div><details open><summary>Can I call the voice assistant now?</summary><p>A public voice demo is not available yet. The Twilio number is voice-enabled, but a successful conversation with the assistant has not been verified.</p></details><details><summary>Does this website collect customer information?</summary><p>Contact details entered here remain only in memory in this open page. They are not uploaded or saved in browser storage, and are cleared on reload. This page has no microphone access, analytics scripts, or application database connection. The hosting provider may retain standard access logs.</p></details><details><summary>Is this an official HPE service?</summary><p>No. This is an independent project. The proposed use case includes customer conversations about HPE Private Cloud AI; no HPE endorsement or authorization to represent HPE is implied.</p></details><details><summary>Where can I read the technical background?</summary><p>The <a href="https://github.com/AINxtGenDev/voice-agent/blob/main/PLAN.md">implementation plan</a> describes the proposed architecture. Twilio documents the <a href="https://www.twilio.com/docs/global-infrastructure/messaging-api-with-twilio-regions">regional messaging configuration</a> used for the successful SMS test. Repository access depends on its visibility settings.</p></details></div>
     </section>
     <section class="contact" aria-labelledby="contact-title"><div><span class="label">Project telephone number</span><h2 id="contact-title">The connection is taking shape.</h2><p class="small">SMS tested. Automated voice conversations are not yet available.</p></div><a class="phone" href="tel:+436703015993" aria-label="Call the project number, plus 43 670 301 59 93; voice assistant not yet available">+43 670 301 59 93 <span aria-hidden="true">↗</span></a></section>
   </main>
-  <footer><div class="wrap footer-inner"><p><strong>Voice Agent</strong> · Independent prototype.<br>No HPE endorsement implied. This public overview contains no customer records.</p><div class="footer-links"><a href="#progress">Project status</a><a href="https://github.com/AINxtGenDev/voice-agent">Repository</a></div></div></footer>
+  <footer><div class="wrap footer-inner"><p><strong>Voice Agent</strong> · Independent prototype.<br>No HPE endorsement implied. Contact entries stay temporarily in this open page.</p><div class="footer-links"><a href="#progress">Project status</a><a href="https://github.com/AINxtGenDev/voice-agent">Repository</a></div></div></footer>
+  <script>
+    const logo = document.querySelector('.hpe-logo');
+    document.getElementById('logo-motion').addEventListener('click', event => {
+      const paused = logo.classList.toggle('paused');
+      event.currentTarget.setAttribute('aria-pressed', String(paused));
+      event.currentTarget.textContent = paused ? 'Resume rotation' : 'Pause rotation';
+    });
+    const form = document.getElementById('contact-entry');
+    const nameInput = document.getElementById('contact-name');
+    const phoneInput = document.getElementById('contact-phone');
+    const productInput = document.getElementById('product');
+    productInput.addEventListener('change', () => {
+      document.getElementById('product-help').textContent = 'Selected: ' + productInput.value + '. Included with each contact you add.';
+    });
+    const list = document.getElementById('contact-list');
+    const status = document.getElementById('form-status');
+    const contacts = new Map();
+    function updateCount() {
+      document.getElementById('contact-count').textContent = '(' + contacts.size + ')';
+      document.getElementById('empty-contacts').hidden = contacts.size > 0;
+    }
+    nameInput.addEventListener('input', () => nameInput.setCustomValidity(''));
+    phoneInput.addEventListener('input', () => phoneInput.setCustomValidity(''));
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const name = nameInput.value.trim();
+      const phone = phoneInput.value.replace(/[\s().-]/g, '');
+      nameInput.setCustomValidity(name ? '' : 'Enter a name.');
+      phoneInput.setCustomValidity(/^\+[1-9][0-9]{7,14}$/.test(phone) ? '' : 'Enter + followed by a country code and 8 to 15 digits in total.');
+      if (!form.reportValidity()) return;
+      if (contacts.has(phone)) {
+        status.textContent = 'This phone number is already listed. Remove its entry before adding it again.';
+        phoneInput.focus();
+        return;
+      }
+      const item = document.createElement('li');
+      item.className = 'contact-card';
+      const details = document.createElement('div');
+      for (const [tag, text] of [['strong', name], ['span', phone], ['span', productInput.value]]) {
+        const element = document.createElement(tag);
+        element.textContent = text;
+        details.append(element);
+      }
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'remove-contact';
+      remove.textContent = 'Remove';
+      remove.setAttribute('aria-label', 'Remove contact ' + name);
+      remove.addEventListener('click', () => {
+        contacts.delete(phone);
+        item.remove();
+        updateCount();
+        status.textContent = 'Contact removed from this page.';
+        nameInput.focus();
+      });
+      item.append(details, remove);
+      contacts.set(phone, item);
+      list.append(item);
+      updateCount();
+      nameInput.value = '';
+      phoneInput.value = '';
+      status.textContent = 'Contact added to this page. No call or message was sent.';
+      nameInput.focus();
+    });
+    document.getElementById('add-contact').disabled = false;
+  </script>
 </body>
 </html>

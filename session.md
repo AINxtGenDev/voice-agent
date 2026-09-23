@@ -4,6 +4,18 @@ Updated: 2026-09-23 (Europe/Vienna).
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
+## Website Design and Form Update — Publication Requested
+
+- Removed the introductory hero and illustrative conversation at the user's request. The contact/product form now follows the header directly. Included in this website publication.
+
+- Added the user-supplied HPE WebP logo under docs/assets with a 24-second Y-axis rotation, pause/resume control, and a reduced-motion CSS override.
+- Added a colorful responsive presentation, name/phone form, and the three requested HPE product options.
+- Contacts are temporary in-memory entries only; reload clears them. No server submission, persistence, telephone call, or SMS is triggered. Persistent storage preference remains unanswered.
+- Browser checks passed for logo loading, animation pause, exact product options, invalid-number rejection, number normalization, duplicate prevention, removal, literal rendering of HTML-like input, and clearing on reload. No browser storage entries were created.
+- Desktop screenshots and 320px mobile screenshots inspected; 320px and 768px viewports had no horizontal overflow. Reduced-motion rule is implemented but was not separately emulated.
+- User requested committing and publishing these changes to GitHub Pages for testing. Publication includes only the website, its supplied logo asset, and this public session record; unrelated local application work remains excluded.
+- Deployment verification follows the push. The form remains temporary and does not save contacts on a server or initiate calls/messages.
+
 ## Published Website
 
 - Live website: [Voice Agent](https://ainxtgendev.github.io/voice-agent/).
