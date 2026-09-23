@@ -4,6 +4,14 @@ Updated: 2026-09-23 (Europe/Vienna).
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
+## Current Handoff
+
+- Website updates are deployed on GitHub Pages. The saved-name dropdown is above Full name; selection fills contact details and the stored product.
+- Three requested contacts were saved and verified in the connected browser profile. They will not automatically appear on another device or profile. Refresh an already open page to load the latest UI; browser-local saved contacts survive reload.
+- The logo rotates slowly without a visible pause control. Reduced-motion preferences disable animation through CSS.
+- No telephone calls or messages were initiated by the website work. Voice integration remains unfinished.
+- The latest task is a session-record update only. Preserve unrelated uncommitted prototype changes; this publication contains no personal contact details.
+
 ## Saved Contact Dropdown and Logo Control Update
 
 - Published as `129893d`; GitHub Pages build completed and public HTML matched the committed file. Added the three user-requested contacts through the live form in the connected browser profile and confirmed all three dropdown entries persisted after reload. No contact details were committed or uploaded. Browser session was closed.
@@ -14,26 +22,26 @@ This is a public project status record. Keep credentials, customer information, 
 - Local browser verification passed for save/reload persistence, dropdown autofill, update without duplication, delete/reload persistence, absence of pause control, and 320px layout without overflow. Dummy test data was removed.
 - This entry supersedes earlier temporary-contact and pause-control descriptions below. Browser storage is not a shared or authenticated customer backend.
 
-## Website Design and Form Update — Published
+## Earlier Website Design and Form Update — Superseded by Saved Contacts
 
 - Removed the introductory hero and illustrative conversation at the user's request. The contact/product form now follows the header directly. Included in this website publication.
 
 - Added the user-supplied HPE WebP logo under docs/assets with a 24-second Y-axis rotation, pause/resume control, and a reduced-motion CSS override.
 - Added a colorful responsive presentation, name/phone form, and the three requested HPE product options.
-- Contacts are temporary in-memory entries only; reload clears them. No server submission, persistence, telephone call, or SMS is triggered. Persistent storage preference remains unanswered.
+- At this earlier stage, contacts were temporary in-memory entries cleared on reload. This was subsequently replaced by browser-local persistence in `129893d`. No server submission, call, or SMS is triggered.
 - Browser checks passed for logo loading, animation pause, exact product options, invalid-number rejection, number normalization, duplicate prevention, removal, literal rendering of HTML-like input, and clearing on reload. No browser storage entries were created.
 - Desktop screenshots and 320px mobile screenshots inspected; 320px and 768px viewports had no horizontal overflow. Reduced-motion rule is implemented but was not separately emulated.
 - User requested committing and publishing these changes to GitHub Pages for testing. Publication includes only the website, its supplied logo asset, and this public session record; unrelated local application work remains excluded.
 - Published website commit: `7d48dc3` — Add animated HPE logo and temporary contact form. Public HTML and logo both returned HTTP 200 and matched the committed files exactly after deployment.
-- The form remains temporary and does not save contacts on a server or initiate calls/messages.
+- The earlier temporary form was superseded by the saved-contact implementation above. Contacts still are not stored on a server, and no calls/messages are initiated.
 
 ## Published Website
 
 - Live website: [Voice Agent](https://ainxtgendev.github.io/voice-agent/).
 - GitHub Pages publishes `docs/` from `main`. The repository remains public.
-- Initial website commit: `cc694b9`. Latest design/form publication: `7d48dc3`.
+- Initial website commit: `cc694b9`. Latest functional website publication: `129893d`. Deployment verification recorded in `483cb36`.
 - Deployment completed successfully. The public HTTPS response returned HTTP 200 and its HTML matched the committed website exactly.
-- The site includes the animated HPE logo, temporary contact form, product selector, planned workflow, development status, FAQ, and approved project telephone number. The introductory hero and illustrative conversation were removed at the user's request.
+- The site includes the animated HPE logo without a pause button, browser-saved contact form and name dropdown, product selector, planned workflow, development status, FAQ, and approved project telephone number. The introductory hero and illustrative conversation were removed at the user's request.
 - Desktop and mobile layouts were inspected. A 320-pixel viewport had no horizontal overflow; keyboard focus, FAQ keyboard interaction, and in-page anchor targets passed checks. Whitespace checks passed.
 
 ## Twilio Verification
