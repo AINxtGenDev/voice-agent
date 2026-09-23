@@ -4,6 +4,14 @@ Updated: 2026-09-23 (Europe/Vienna).
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
+## Saved Contact Dropdown and Logo Control Update
+
+- Added a saved-name dropdown above Full name. Selecting a saved contact fills its name, phone number, and product; saving updates the selected record.
+- Contacts now persist in browser localStorage on the current device/profile. No contact values are embedded in source or uploaded. The user requested three initial contacts; their personal details are intentionally excluded from this public record.
+- Removed the visible rotation pause control at the user's request. The slow logo animation retains a reduced-motion CSS override.
+- Local browser verification passed for save/reload persistence, dropdown autofill, update without duplication, delete/reload persistence, absence of pause control, and 320px layout without overflow. Dummy test data was removed.
+- This entry supersedes earlier temporary-contact and pause-control descriptions below. Browser storage is not a shared or authenticated customer backend.
+
 ## Website Design and Form Update — Published
 
 - Removed the introductory hero and illustrative conversation at the user's request. The contact/product form now follows the header directly. Included in this website publication.
