@@ -4,7 +4,7 @@ Updated: 2026-09-23 (Europe/Vienna).
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
-## Website Design and Form Update — Publication Requested
+## Website Design and Form Update — Published
 
 - Removed the introductory hero and illustrative conversation at the user's request. The contact/product form now follows the header directly. Included in this website publication.
 
@@ -14,15 +14,16 @@ This is a public project status record. Keep credentials, customer information, 
 - Browser checks passed for logo loading, animation pause, exact product options, invalid-number rejection, number normalization, duplicate prevention, removal, literal rendering of HTML-like input, and clearing on reload. No browser storage entries were created.
 - Desktop screenshots and 320px mobile screenshots inspected; 320px and 768px viewports had no horizontal overflow. Reduced-motion rule is implemented but was not separately emulated.
 - User requested committing and publishing these changes to GitHub Pages for testing. Publication includes only the website, its supplied logo asset, and this public session record; unrelated local application work remains excluded.
-- Deployment verification follows the push. The form remains temporary and does not save contacts on a server or initiate calls/messages.
+- Published website commit: `7d48dc3` — Add animated HPE logo and temporary contact form. Public HTML and logo both returned HTTP 200 and matched the committed files exactly after deployment.
+- The form remains temporary and does not save contacts on a server or initiate calls/messages.
 
 ## Published Website
 
 - Live website: [Voice Agent](https://ainxtgendev.github.io/voice-agent/).
 - GitHub Pages publishes `docs/` from `main`. The repository remains public.
-- Website commit: `cc694b9` — Publish updated Voice Agent project website.
+- Initial website commit: `cc694b9`. Latest design/form publication: `7d48dc3`.
 - Deployment completed successfully. The public HTTPS response returned HTTP 200 and its HTML matched the committed website exactly.
-- The site includes the planned workflow, an illustrative conversation, current development status, a keyboard-accessible FAQ, and the approved project telephone number.
+- The site includes the animated HPE logo, temporary contact form, product selector, planned workflow, development status, FAQ, and approved project telephone number. The introductory hero and illustrative conversation were removed at the user's request.
 - Desktop and mobile layouts were inspected. A 320-pixel viewport had no horizontal overflow; keyboard focus, FAQ keyboard interaction, and in-page anchor targets passed checks. Whitespace checks passed.
 
 ## Twilio Verification
