@@ -1,8 +1,17 @@
 # Session Status
 
-Updated: 2026-09-23 (Europe/Vienna).
+Updated: 2026-09-24 (Europe/Vienna).
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
+
+## GPT-Live API Verification — 2026-09-24
+
+- Authenticated model discovery returned HTTP 200 and listed `gpt-live-1`.
+- A bounded WebSocket smoke test against `/v1/live/sessions` received `session.started`, sent synthetic silence, and received `session.closed` with no provider errors. The final reported usage was zero seconds; this does not establish an invoice amount or sustained audio processing.
+- This verifies authenticated session startup and server-confirmed closure. Spoken responses, microphone quality, interruptions, delegation, browser WebRTC, and telephone calls were not tested.
+- The existing credential loader rejected the shared credential file. The test selected only the intended credential in memory; no credential was printed, copied into the repository, or changed. The loader remains unchanged and needs a separate correction before that file can be used directly by the existing scripts.
+- Browser verification was unavailable because the browser-skill extension had no connected browser.
+- Sources reviewed on 24 September 2026: [GPT-Live 1 model](https://developers.openai.com/api/docs/models/gpt-live-1) and [GPT-Live guide](https://developers.openai.com/api/docs/guides/live). Test results above are direct observations from the authenticated API test.
 
 ## Conversation Button — 2026-09-23
 
