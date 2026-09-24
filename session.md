@@ -20,6 +20,7 @@ Remaining open items:
 
 - Make the agent reliably ask for, spell back, and confirm the e-mail address; check how the call ended.
 - Replace the temporary tunnel with a durable HTTPS endpoint before regular use.
+- Calls now wait 2 seconds of silence after pickup before the opening (TwiML `<Pause length="2"/>`); the clarification re-prompt has no pause. Not yet verified on a real call.
 - Summaries now use `gpt-5.6-terra` (user decision; roughly 1–2 cents per call instead of about 0.2 cents with Luna). The first real report above was still written by Luna.
 - The summary notice in the opening is a design choice, not a legal review.
 

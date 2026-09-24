@@ -31,6 +31,7 @@ test('outbound reservation prevents concurrent dial; carrier duration and signed
     assert.equal(f.request().timeLimit, 300);
     assert.equal(f.request().timeout, 20);
     assert.equal(f.request().statusCallback, 'https://voice.example/twilio/status');
+    assert.match(f.request().twiml, /<Response><Pause length="2"\/><Say[^>]*>Guten Tag/u);
     assert.match(f.request().twiml, /<Gather/u);
     assert.match(f.request().twiml, /erstellt von Werner/u);
     assert.doesNotMatch(f.request().twiml, /<Stream/u);

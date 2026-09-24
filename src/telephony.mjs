@@ -7,6 +7,7 @@ import { createLiveConversation } from './live-conversation.mjs';
 
 const terminal = new Set(['completed', 'failed', 'busy', 'no-answer', 'canceled']);
 const phone = /^\+[1-9][0-9]{7,14}$/u;
+const ANSWER_PAUSE_SECONDS = 2; // Silence after pickup before the opening.
 const DIALOGUE_LIMIT = 40_000;
 const WRAP_UP = 'Die Gesprächszeit endet in etwa einer Minute. Kommen Sie freundlich zum Abschluss: Falls noch nicht geschehen, bieten Sie einen Folgetermin mit HPE-Expertinnen und -Experten an, fassen Sie Vereinbartes kurz zusammen und verabschieden Sie sich.';
 
@@ -110,7 +111,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
     const call = { id: randomUUID(), customerId, topicId, permission: 'pending', permissionAttempt: 0, permissionGate: new ConversationGate(topicId), state: 'dialing', liveState: 'not-started', startedAt: new Date().toISOString(), nonce: randomBytes(32).toString('hex'), phoneEnded: false, dialogue: [], dialogueLength: 0, summaryAllowed: true };
     current = call;
     publish(call); // Durable reservation must succeed before the paid request.
-    const xml = permissionPrompt(call, openingForTopic(topicId));
+    const xml = permissionPrompt(call, openingForTopic(topicId), ANSWER_PAUSE_SECONDS);
     remember(call, 'agent', openingForTopic(topicId));
     call.creation = (async () => {
       try {
@@ -133,8 +134,9 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
     return snapshot(call);
   }
 
-  function permissionPrompt(call, message) {
+  function permissionPrompt(call, message, pauseSeconds = 0) {
     const xml = new twilio.twiml.VoiceResponse();
+    if (pauseSeconds) xml.pause({ length: pauseSeconds });
     xml.say({ language: 'de-DE' }, message);
     xml.gather({ input: 'speech', language: 'de-DE', speechTimeout: '2', timeout: 7, actionOnEmptyResult: true, method: 'POST', action: `${base.origin}/twilio/permission?attempt=${call.permissionAttempt}` });
     xml.hangup();
