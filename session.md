@@ -4,6 +4,12 @@ Updated: 2026-09-24 (Europe/Vienna).
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
+## Voice API Pricing Comparison — 2026-09-24
+
+- Added a sourced 1-, 3-, and 5-minute GPT-Live-1 versus Gemini 3.8 Live comparison to [README.md](README.md#voice-api-cost-comparison).
+- Gemini figures are illustrative new-audio subtotals with explicit listening/output assumptions. Repeated-context billing and additional usage prevent determining its total cost from session duration alone.
+- No Gemini integration or paid Gemini test was performed. Existing unrelated local changes were preserved.
+
 ## GPT-Live API Verification — 2026-09-24
 
 - Authenticated model discovery returned HTTP 200 and listed `gpt-live-1`.
