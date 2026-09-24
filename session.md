@@ -1,21 +1,26 @@
 # Session Status
 
-Updated: 2026-09-24 (Europe/Vienna). Latest code commit: `56b5c47`.
+Updated: 2026-09-24 (Europe/Vienna). Latest code commit: `55eb6a1`.
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
 ## Resume Here — 2026-09-24
 
-Latest code commit: `56b5c47` (early hang-up fix). No work in progress; no tunnel or server is running.
+Latest code commit: `55eb6a1` (IE1 Auth Token support). No work in progress; no tunnel or server is running.
 
-**Blocker for the first real call:** the Twilio credentials in the private key store authenticate only in the default US1 region (HTTP 401 / error 20003 in IE1). The caller number is an IE1 number, so the IE1 **Auth Token** is required (Twilio Console → API Keys & auth tokens → Region selector: Ireland). The stored IE1 API key pair cannot replace it, because the loader and callback signature validation expect an Auth Token. Whether IE1 callbacks are signed with the IE1 token was not confirmed in Twilio's documentation.
+**First real telephone call succeeded** (user-authorized bounded test to the operator's own number, 3-minute limit, 18:25 Europe/Vienna):
 
-First test-call attempt (user-authorized, to the operator's own number, 3-minute limit): the call request was rejected by Twilio IE1 before dialing, so no phone rang and no paid call occurred. It was recorded as `failed`/finalized with no unresolved journal, and a metadata-only report was written as designed. Setup used a checksum-verified `cloudflared` 2026.9.2 quick tunnel exposing only the signed gateway on port 3001 (public probes: 404 elsewhere, 403 unsigned); tunnel and server were stopped afterwards.
+- Twilio IE1 accepted the call using the regional IE1 Auth Token; signed status and permission callbacks were accepted through a temporary checksum-verified `cloudflared` quick tunnel exposing only the gateway (public probes: 404 elsewhere, 403 unsigned).
+- The spoken consent "Ja" was recognized by the carrier; GPT-Live started with Terra delegation and ran until a clean, confirmed closure on both legs (106 s Live usage; Twilio duration 2 min 10 s).
+- The Markdown report was written automatically with date, time, carrier duration, meeting wanted (yes), preferred times, online format, and main interest. **No e-mail address was captured**, so the invitation step is not yet complete.
+- Not yet determined: who ended the call (customer hang-up, withdrawal detection, or the agent), audio quality, and whether Terra's knowledge-tool answers were correct. The server does not log dialogue content by design.
+- Earlier attempt at 18:11 failed before dialing (US1 token used against IE1); resolved by adding the IE1 token.
 
 Remaining open items:
 
-- Provide IE1 credentials in a private owner-only file, then repeat the bounded test call.
-- **Pending decision:** keep the summary model on `gpt-5.6-luna` (about 0.2 cents per call) or switch it to `gpt-5.6-terra` (about 1–2 cents).
+- Make the agent reliably ask for, spell back, and confirm the e-mail address; check how the call ended.
+- Replace the temporary tunnel with a durable HTTPS endpoint before regular use.
+- **Pending decision:** keep the summary model on `gpt-5.6-luna` or switch it to `gpt-5.6-terra`.
 - The summary notice in the opening is a design choice, not a legal review.
 
 ## Call Reports, Meeting Goal, and Terra Delegation — 2026-09-24
@@ -146,9 +151,9 @@ Remaining open items:
 
 ## Next Steps
 
-1. Store the IE1 Twilio Auth Token privately and repeat the bounded test call through a temporary tunnel (withdrawal fix and test-contact permission are done).
-2. Replace the temporary tunnel with a durable HTTPS endpoint before regular use.
-3. Obtain explicit authorization for a bounded test call to the designated test contact. Verify two-way audio, the spoken introduction, Terra-backed answers, confirmed termination, and the generated report (date, time, carrier duration, summary quality).
+1. Review the first call with the user: how it ended, audio quality, answer quality, and why no e-mail address was captured; adjust the meeting-request instructions.
+2. Repeat a bounded test call after changes; verify the e-mail is spelled back and appears in the report.
+3. Replace the temporary tunnel with a durable HTTPS endpoint (for example, a reverse proxy on a Hetzner server) before regular use.
 4. Decide the summary model (Luna or Terra).
 5. Keep this public status record current; retain private troubleshooting details separately. A future repository visibility change requires a separate decision and has not been performed.
 
