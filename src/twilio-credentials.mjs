@@ -4,6 +4,8 @@ export function parseTwilioCredentials(text) {
   const aliases = new Map([
     ['TWILIO_ACCOUNT_SID', 'accountSid'], ['Account-SSID', 'accountSid'], ['Account-SID', 'accountSid'],
     ['TWILIO_AUTH_TOKEN', 'authToken'], ['Auth-Token', 'authToken'],
+    // Twilio issues a separate Auth Token per region; calls here use IE1.
+    ['TWILIO_IE1_AUTH_TOKEN', 'ie1AuthToken'], ['IE1-Auth-Token', 'ie1AuthToken'],
     ['TWILIO_FROM_NUMBER', 'fromNumber'], ['Twilio phone-number', 'fromNumber'],
   ]);
   const result = {};
@@ -17,6 +19,7 @@ export function parseTwilioCredentials(text) {
     if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) value = value.slice(1, -1);
     result[name] = name === 'fromNumber' ? value.replace(/[\s()-]/g, '') : value;
   }
+  if (result.ie1AuthToken !== undefined) { result.authToken = result.ie1AuthToken; delete result.ie1AuthToken; }
   if (!/^AC[0-9a-fA-F]{32}$/.test(result.accountSid ?? '') || !/^[0-9a-fA-F]{32}$/.test(result.authToken ?? '') || !/^\+[1-9][0-9]{7,14}$/.test(result.fromNumber ?? '')) {
     throw new Error('Twilio Account SID, Auth Token, or caller number is missing or invalid.');
   }
