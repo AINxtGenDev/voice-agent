@@ -20,12 +20,12 @@ Remaining open items:
 
 - Make the agent reliably ask for, spell back, and confirm the e-mail address; check how the call ended.
 - Replace the temporary tunnel with a durable HTTPS endpoint before regular use.
-- **Pending decision:** keep the summary model on `gpt-5.6-luna` or switch it to `gpt-5.6-terra`.
+- Summaries now use `gpt-5.6-terra` (user decision; roughly 1–2 cents per call instead of about 0.2 cents with Luna). The first real report above was still written by Luna.
 - The summary notice in the opening is a design choice, not a legal review.
 
 ## Call Reports, Meeting Goal, and Terra Delegation — 2026-09-24
 
-- After each telephone call, a Markdown report with date, time, duration, contact, outcome, and follow-up-meeting details (preferred times, online/on-site, interest, unverified e-mail) is written to the Git-ignored `reports/` directory. `gpt-5.6-luna` writes the summary with `store: false`; transcripts are not stored. Duration comes from Twilio's `CallDuration`, with local timing as a fallback.
+- After each telephone call, a Markdown report with date, time, duration, contact, outcome, and follow-up-meeting details (preferred times, online/on-site, interest, unverified e-mail) is written to the Git-ignored `reports/` directory. `gpt-5.6-luna` wrote the summary with `store: false` (switched to `gpt-5.6-terra` later the same day); transcripts are not stored. Duration comes from Twilio's `CallDuration`, with local timing as a fallback.
 - The opening now announces the written summary before asking permission. An objection to notes, or a declined conversation, produces a metadata-only report. The agent's goal is a follow-up meeting with HPE experts; it never confirms a fixed appointment.
 - Telephone Live sessions now use Responses delegation to `gpt-5.6-terra` (reasoning effort medium) with the application-owned HPE knowledge function. The browser microphone test keeps client delegation. Calls default to 5 minutes with a wrap-up instruction about 1 minute before the end.
 - Three user-requested contacts were added to the private local database with contact permission not documented (calling blocked until recorded). Their details are intentionally excluded from this public record. The user designated one of them for future test calls; a real call still requires Twilio setup, a public HTTPS backend, and explicit authorization.
@@ -154,8 +154,7 @@ Remaining open items:
 1. Review the first call with the user: how it ended, audio quality, answer quality, and why no e-mail address was captured; adjust the meeting-request instructions.
 2. Repeat a bounded test call after changes; verify the e-mail is spelled back and appears in the report.
 3. Replace the temporary tunnel with a durable HTTPS endpoint (for example, a reverse proxy on a Hetzner server) before regular use.
-4. Decide the summary model (Luna or Terra).
-5. Keep this public status record current; retain private troubleshooting details separately. A future repository visibility change requires a separate decision and has not been performed.
+4. Keep this public status record current; retain private troubleshooting details separately. A future repository visibility change requires a separate decision and has not been performed.
 
 ## Sources
 

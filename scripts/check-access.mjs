@@ -11,7 +11,7 @@ try {
   const body = await response.json();
   const ids = new Set(body.data?.map((model) => model.id));
   const available = ids.has('gpt-live-1');
-  console.log(JSON.stringify({ authenticated: true, liveModelListed: available, backendModelListed: ids.has('gpt-5.6-luna') }));
+  console.log(JSON.stringify({ authenticated: true, liveModelListed: available, backendModelListed: ids.has('gpt-5.6-terra') }));
   if (!available) process.exitCode = 1;
 } catch (error) {
   console.error(error instanceof TypeError ? 'Network access check failed.' : error.message);
