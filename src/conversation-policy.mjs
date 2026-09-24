@@ -44,6 +44,18 @@ Nutzen Sie für jede Produktfrage das Werkzeug search_hpe_knowledge und antworte
 Geben Sie knapp die relevanten Fakten und den nächsten sinnvollen Schritt zurück, auf Deutsch, in höchstens drei kurzen Sätzen. Ein guter nächster Schritt ist ein Folgetermin mit HPE-Expertinnen und -Experten; einen festen Termin bestätigen Sie nie.`;
 }
 
+// After consent, only explicit requests end the call. Loose words such as "beenden" or
+// "jetzt nicht" count only as a complete short utterance, so ordinary sentences continue.
+const SUPPRESS = /\b(?:rufen|kontaktieren) sie (?:mich |uns )?(?:bitte )?(?:nicht mehr|nie wieder)\b|\b(?:nicht mehr|nie wieder) (?:anrufen|kontaktieren)\b|\bkeine (?:weiteren )?anrufe(?: mehr)?\b/u;
+const EXPLICIT_STOP = /\b(?:legen sie (?:(?:bitte|jetzt|doch|einfach) )*auf|ich lege (?:jetzt )?auf|hören sie (?:(?:bitte|jetzt|doch|einfach) )*auf|(?:gespräch|telefonat|anruf) (?:(?:bitte|jetzt|hier) )*(?:beenden|abbrechen)|beenden sie|brechen sie (?:(?:bitte|jetzt) )*ab|ich widerrufe|lassen sie mich in ruhe)\b/u;
+const SHORT_STOP = /\b(?:stop|stopp|aufhören|auflegen|beenden|abbrechen|widerrufe|kein interesse|keine zeit|jetzt nicht|nicht jetzt|auf wiederhören|tschüss)\b/u;
+export function classifyWithdrawal(text, { complete = true } = {}) {
+  const value = normalize(text);
+  const suppressContact = SUPPRESS.test(value);
+  const short = complete && value.split(' ').length <= 6 && SHORT_STOP.test(value);
+  return { end: suppressContact || EXPLICIT_STOP.test(value) || short, suppressContact };
+}
+
 // Explicit objections to the written summary; conservative, like the consent parser.
 export function objectsToSummary(text) {
   return /\b(?:nicht|keine|kein)\b.{0,30}\b(?:aufschreiben|aufzeichnen|notieren|festhalten|zusammenfassung|mitschreiben|protokoll\w*)\b/u.test(normalize(text));
@@ -91,8 +103,11 @@ export class ConversationGate {
     // These expressions are explicit withdrawal signals, not semantic inference.
     const suppressContact = /\b(?:nicht mehr|nie wieder|keine weiteren)\b.*\b(?:anrufen|anrufe|kontaktieren|kontakt)|\b(?:anrufen|kontaktieren)\b.*\b(?:nicht mehr|nie wieder)\b/u.test(value) || /\brufen\b.*\b(?:nicht mehr|nie wieder)\b.*\ban\b/u.test(value);
     const stop = /\b(?:stop|stopp|aufhören|auflegen|beenden|widerrufe|abbrechen)\b|\b(?:kein interesse|keine zeit|jetzt nicht|lassen sie mich in ruhe|auf wiederhören)\b/u.test(value);
+    if (this.mayDiscussProduct) {
+      const withdrawal = classifyWithdrawal(text);
+      return withdrawal.end ? this.#end(withdrawal.suppressContact) : this.#result('continue');
+    }
     if (suppressContact || stop) return this.#end(suppressContact);
-    if (this.mayDiscussProduct) return this.#result('continue');
     if (/\b(?:nein|nicht|keinesfalls|niemals)\b/u.test(value)) return this.#end();
     if (AFFIRMATIVE.has(value)) {
       this.#state = 'product_discussion';

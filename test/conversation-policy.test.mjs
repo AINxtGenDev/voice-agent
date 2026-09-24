@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { openingForTopic, buildConversationInstructions, ConversationGate } from '../src/conversation-policy.mjs';
+import { openingForTopic, buildConversationInstructions, ConversationGate, classifyWithdrawal } from '../src/conversation-policy.mjs';
 
 test('opening preserves the required German identity and permission wording', () => {
   assert.equal(openingForTopic(), 'Guten Tag! Ich bin der HPE Sprachassistent, erstellt von Werner, und ein KI-Assistent. Das Gespräch halte ich danach in einer kurzen schriftlichen Zusammenfassung fest. Darf ich mit Ihnen ein Gespräch zum Thema HPE Private Cloud AI führen?');
@@ -70,4 +70,18 @@ test('identity questions do not allow product speech or unlimited reprompting', 
   assert.equal(result.mayDiscussProduct, false);
   assert.match(result.message, /KI-Assistent, erstellt von Werner/);
   assert.equal(gate.handleTranscript('Wer sind Sie?').state, 'ended');
+});
+
+test('withdrawal after consent requires an explicit request or a short complete utterance', () => {
+  for (const text of ['Das brauchen wir jetzt nicht, aber RAG interessiert uns.', 'Wir wollen das alte Projekt beenden und migrieren.', 'Wir kontaktieren den alten Anbieter nicht mehr.', 'Der Stopp der Produktion ist geplant, was empfehlen Sie?']) {
+    assert.deepEqual(classifyWithdrawal(text), { end: false, suppressContact: false }, text);
+  }
+  for (const text of ['Keine Zeit.', 'Ich habe kein Interesse.', 'Stopp!', 'Auf Wiederhören.', 'Bitte legen Sie jetzt auf, ich muss in ein Meeting gehen.', 'Ich möchte das Gespräch jetzt beenden, danke.']) {
+    assert.equal(classifyWithdrawal(text).end, true, text);
+  }
+  assert.equal(classifyWithdrawal('Keine Zeit', { complete: false }).end, false);
+  assert.equal(classifyWithdrawal('Rufen Sie mich bitte nicht mehr an, danke für Ihr Verständnis.').suppressContact, true);
+  const gate = new ConversationGate();
+  gate.handleTranscript('Ja');
+  assert.equal(gate.handleTranscript('Wir wollen das alte Projekt beenden und migrieren.').action, 'continue');
 });

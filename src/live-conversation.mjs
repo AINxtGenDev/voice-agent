@@ -1,4 +1,4 @@
-import { ConversationGate, openingForTopic } from './conversation-policy.mjs';
+import { ConversationGate, classifyWithdrawal, openingForTopic } from './conversation-policy.mjs';
 import { searchHpeKnowledge } from './hpe-knowledge.mjs';
 
 // Live transcript deltas are fragments, not final turns. Only client delegation
@@ -6,7 +6,7 @@ import { searchHpeKnowledge } from './hpe-knowledge.mjs';
 // must already have been established from the carrier's final Gather result.
 // With delegationMode 'responses' (telephone, after carrier-verified consent), the
 // configured backend model answers; this handler only executes its knowledge tool.
-export function createLiveConversation({ send, close, onSuppression = () => {}, topicId = 'hpe-private-cloud-ai', consentGranted = false, permissionTimeoutMs = 25_000, delegationMode = 'client' } = {}) {
+export function createLiveConversation({ send, close, onSuppression = () => {}, topicId = 'hpe-private-cloud-ai', consentGranted = false, permissionTimeoutMs = 25_000, turnEndMs = 1_500, delegationMode = 'client' } = {}) {
   if (delegationMode === 'responses' && !consentGranted) throw new Error('Responses delegation requires verified consent.');
   const gate = new ConversationGate(topicId);
   if (consentGranted) gate.handleTranscript('Ja');
@@ -14,6 +14,8 @@ export function createLiveConversation({ send, close, onSuppression = () => {}, 
   let disposed = false;
   let started = false;
   let permissionTimer;
+  let turn = '';
+  let turnTimer;
   const seen = new Set();
   const delegations = new Set();
   const append = (type, content, delegation_id = null) => send({ type, delegation_id, content });
@@ -21,9 +23,21 @@ export function createLiveConversation({ send, close, onSuppression = () => {}, 
     if (disposed) return;
     disposed = true;
     clearTimeout(permissionTimer);
+    clearTimeout(turnTimer);
     transcript = '';
+    turn = '';
     // Transport shutdown must not depend on successful contact persistence.
     try { if (suppressContact) onSuppression(); } finally { close(); }
+  };
+  // A customer turn is complete after a pause or when the assistant starts replying.
+  const finishTurn = () => {
+    clearTimeout(turnTimer);
+    const text = turn;
+    turn = '';
+    if (!disposed && text.trim()) {
+      const withdrawal = classifyWithdrawal(text);
+      if (withdrawal.end) end(withdrawal.suppressContact);
+    }
   };
   const waitForPermission = () => {
     clearTimeout(permissionTimer);
@@ -58,14 +72,22 @@ export function createLiveConversation({ send, close, onSuppression = () => {}, 
         if (typeof event.delta !== 'string' || (delegationMode === 'client' && transcript.length + event.delta.length > 8000)) return end();
         // Client mode resets at each delegation; Responses mode keeps a window for withdrawal checks.
         transcript = delegationMode === 'client' ? transcript + event.delta : (transcript + event.delta).slice(-500);
-        // Withdrawal is conservative and immediate; it never grants permission.
-        const withdrawal = /\b(stopp?|aufhören|aufhoeren|auflegen|beenden|abbrechen|widerrufe|kein interesse|keine zeit|jetzt nicht|nicht jetzt)\b/iu.test(transcript);
-        const suppression = /(?:nicht mehr|nie wieder|keine weiteren).*(?:anrufen|anrufe|kontakt)|(?:rufen|kontaktieren).*?(?:nicht mehr|nie wieder)/iu.test(transcript);
-        if (withdrawal || suppression || (!gate.mayDiscussProduct && /\bnein\b/iu.test(transcript))) {
-          return end(suppression);
+        if (!gate.mayDiscussProduct) {
+          // Before consent, withdrawal is conservative and immediate; it never grants permission.
+          const withdrawal = /\b(stopp?|aufhören|aufhoeren|auflegen|beenden|abbrechen|widerrufe|kein interesse|keine zeit|jetzt nicht|nicht jetzt)\b/iu.test(transcript);
+          const suppression = /(?:nicht mehr|nie wieder|keine weiteren).*(?:anrufen|anrufe|kontakt)|(?:rufen|kontaktieren).*?(?:nicht mehr|nie wieder)/iu.test(transcript);
+          if (withdrawal || suppression || /\bnein\b/iu.test(transcript)) return end(suppression);
+          return;
         }
+        turn = (turn + event.delta).slice(-500);
+        const explicit = classifyWithdrawal(turn, { complete: false });
+        if (explicit.end) return end(explicit.suppressContact);
+        clearTimeout(turnTimer);
+        turnTimer = setTimeout(finishTurn, turnEndMs);
+        turnTimer.unref?.();
         return;
       }
+      if (event.type === 'session.output_transcript.delta') return finishTurn();
       if (delegationMode === 'responses') {
         if (event.type === 'session.delegation.created' && event.delegation?.target !== 'responses') return end();
         const item = event.type === 'response.event' && event.event?.type === 'response.output_item.done' ? event.event.item : null;
@@ -113,6 +135,6 @@ export function createLiveConversation({ send, close, onSuppression = () => {}, 
         ? 'Für diese Frage liegt kein belastbarer freigegebener Beleg vor. Sage das freundlich auf Deutsch. Erfinde keine Antwort. Frage bei Bedarf nach Version oder konkretem Anwendungsfall.'
         : `Antworte freundlich und knapp nur anhand der gerade gelieferten Belege. Grenzen: ${evidence.limitations.slice(0, 2).join(' ').slice(0, 500)} Bei Versionskonflikten nachfragen. Keine Preise oder Garantien ergänzen.`, id);
     },
-    dispose() { disposed = true; clearTimeout(permissionTimer); transcript = ''; seen.clear(); delegations.clear(); },
+    dispose() { disposed = true; clearTimeout(permissionTimer); clearTimeout(turnTimer); turn = ''; transcript = ''; seen.clear(); delegations.clear(); },
   };
 }

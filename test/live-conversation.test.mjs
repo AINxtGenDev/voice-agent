@@ -98,3 +98,27 @@ test('responses delegation executes only the knowledge tool and continues the ba
   f.conversation.handle({ type: 'session.delegation.created', delegation: { id: 'c1', target: 'client' } });
   assert.equal(f.closed(), 1);
 });
+
+test('after consent, ordinary sentences with stop words continue; short or explicit requests end', async () => {
+  const f = fixture({ consentGranted: true, delegationMode: 'responses', turnEndMs: 10 });
+  const reply = () => f.conversation.handle({ type: 'session.output_transcript.delta', delta: 'Verstehe.' });
+  for (const sentence of ['Das brauchen wir jetzt nicht, aber RAG interessiert uns sehr.', 'Wir wollen das alte Projekt beenden und migrieren.', 'Wir kontaktieren den alten Anbieter nicht mehr.', 'Kein Interesse an Public Cloud, aber an Private Cloud schon.']) {
+    for (const word of sentence.split(' ')) f.text(`${word} `);
+    reply();
+  }
+  await new Promise(resolve => setTimeout(resolve, 30));
+  assert.equal(f.closed(), 0);
+  assert.equal(f.suppressed(), 0);
+  f.text('Keine '); f.text('Zeit, ');
+  assert.equal(f.closed(), 0); // The customer may still be speaking.
+  f.text('das ist heute schwierig, aber erzählen Sie weiter.');
+  reply();
+  assert.equal(f.closed(), 0);
+  f.text('Keine Zeit.');
+  await new Promise(resolve => setTimeout(resolve, 30));
+  assert.equal(f.closed(), 1);
+  const g = fixture({ consentGranted: true, delegationMode: 'responses' });
+  g.text('Also gut, legen Sie bitte ');
+  g.text('auf, danke.');
+  assert.equal(g.closed(), 1);
+});
