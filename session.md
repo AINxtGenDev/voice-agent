@@ -4,6 +4,13 @@ Updated: 2026-09-24 (Europe/Vienna).
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
+## German HPE Voice Agent Requirements — 2026-09-24
+
+- Added [HPE_AGENT_PLAN.md](HPE_AGENT_PLAN.md): selected person/topic workflow, German dialogue, very friendly and respectful conduct, introduction as an AI-based HPE Sprachassistent created by Werner, and explicit permission before product discussion.
+- Added [HPE_PRIVATE_CLOUD_AI.md](HPE_PRIVATE_CLOUD_AI.md): all seven requested HPE sources, review coverage, initial grounded statements, and unresolved version differences. Both support pages were verified in the connected browser; the task browser session was closed.
+- The supplied administration link identifies version 1.5; newer documentation is listed in the support index. Developer-system specifications also differ between the developer page and QuickSpecs. The plan requires version-specific answers.
+- This is a requirements and knowledge-planning update. No calling integration, production knowledge index, or live call was activated. Telephone remains the provisional channel pending the user's answer.
+
 ## Voice API Pricing Comparison — 2026-09-24
 
 - Added a sourced 1-, 3-, and 5-minute GPT-Live-1 versus Gemini 3.8 Live comparison to [README.md](README.md#voice-api-cost-comparison).

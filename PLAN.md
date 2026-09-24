@@ -1,6 +1,8 @@
 # Voice Agent implementation plan
 
-Prepared 18 September 2026. Status: proposed design; integrations and account access are not yet tested.
+Prepared 18 September 2026; refined 24 September 2026. Status: proposed implementation plan. OpenAI authentication and bounded Live session startup/closure have been tested; complete customer calling remains unverified. See [session.md](session.md) for observed results.
+
+The current German dialogue, permission-first opening, selected-topic workflow, and knowledge requirements are specified in [HPE_AGENT_PLAN.md](HPE_AGENT_PLAN.md), with the seven requested HPE sources and version conflicts in [HPE_PRIVATE_CLOUD_AI.md](HPE_PRIVATE_CLOUD_AI.md). These requirements supersede earlier provisional conversation wording below.
 
 ## 1. Intended workflow
 
@@ -16,7 +18,7 @@ The supplied real example customer and recipient are stored only in ignored loca
 
 ## 2. API access and model choice
 
-Use `gpt-live-1` as requested. It requires a funded OpenAI API project with model access; the trusted server holds the project API key. A ChatGPT subscription does not include API usage. The published free API tier does not support this model. Actual account access remains unverified. [1][2][3]
+Use `gpt-live-1` as requested. It requires a funded OpenAI API project with model access; the trusted server holds the project API key. A ChatGPT subscription does not include API usage. The published free API tier does not support this model. Authentication, model listing, and bounded Live startup/closure were verified on 24 September 2026; full voice conversation behavior remains unverified. [1][2][3]
 
 An OpenRouter key is not an OpenAI credential. OpenRouter documents audio through Chat Completions, which does not establish support for the GPT-Live session protocol. Do not base voice connectivity on it without explicit provider support. It can optionally supply a text model for summaries or client-side delegation through our backend; using OpenAI alone initially reduces integration complexity. The existing unrelated project key is not needed during planning and has not been loaded. Prefer a dedicated project key and budget when implementing. [2][4]
 
@@ -71,7 +73,7 @@ Cost controls: one concurrent call, five-minute initial maximum enforced server-
 
 ## 5. Conversation design
 
-Assistant name: **HPE-Austria-Marketing-Agent**. Role: calm, friendly voice assistant discussing HPE Private Cloud AI. Default proposed language is German, selectable before calling; do not infer language from a name. Use concise questions and allow interruptions. Do not imply HPE employment or authorization unless the operator has established it.
+Project name: **HPE-Austria-Marketing-Agent**. Spoken introduction: **HPE Sprachassistent, erstellt von Werner**, explicitly identified as an AI assistant. Dialogue must be German, very friendly and respectful. The first utterance asks permission to discuss the selected topic; substantive dialogue starts only after clear agreement. Follow the exact opening and refusal rules in [HPE_AGENT_PLAN.md](HPE_AGENT_PLAN.md#2-verbindliche-eröffnung-und-gesprächserlaubnis). Use concise questions and allow interruptions. Do not imply HPE employment or authorization unless the operator has established it.
 
 Keep the voice instructions short. Use the OpenAI guide's Backchannel policy, Interruption policy, and Delegation policy structure. Put business rules and detailed product information in the backend. Only list capabilities actually implemented. [8]
 

@@ -5,6 +5,8 @@ Planning repository for a mobile-first customer conversation assistant using Ope
 **Status:** the committed repository contains the implementation plan. Local prototype work remains uncommitted. An outbound Twilio SMS test has been verified; telephone calling and email delivery are not yet operational.
 
 - [Implementation plan](PLAN.md)
+- [Deutscher HPE-Sprachagent: Ablauf und Gesprächsregeln](HPE_AGENT_PLAN.md)
+- [HPE Private Cloud AI: Quellen und Wissensstand](HPE_PRIVATE_CLOUD_AI.md)
 - [API key setup and next steps](NEXT_STEPS.md)
 - [Public project overview](https://ainxtgendev.github.io/voice-agent/)
 
