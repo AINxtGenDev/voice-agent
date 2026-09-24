@@ -2,18 +2,20 @@ import http from 'node:http';
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import twilio from 'twilio';
 import WebSocket, { WebSocketServer } from 'ws';
-import { openingForTopic, buildConversationInstructions, ConversationGate } from './conversation-policy.mjs';
+import { openingForTopic, buildConversationInstructions, buildBackendInstructions, objectsToSummary, BACKEND_MODEL, KNOWLEDGE_TOOL, ConversationGate } from './conversation-policy.mjs';
 import { createLiveConversation } from './live-conversation.mjs';
 
 const terminal = new Set(['completed', 'failed', 'busy', 'no-answer', 'canceled']);
 const phone = /^\+[1-9][0-9]{7,14}$/u;
+const DIALOGUE_LIMIT = 40_000;
+const WRAP_UP = 'Die Gesprächszeit endet in etwa einer Minute. Kommen Sie freundlich zum Abschluss: Falls noch nicht geschehen, bieten Sie einen Folgetermin mit HPE-Expertinnen und -Experten an, fassen Sie Vereinbartes kurz zusammen und verabschieden Sie sich.';
 
 
 export class TelephonyError extends Error {
   constructor(message, status = 409) { super(message); this.status = status; }
 }
 
-export function createTelephony({ accountSid, authToken, fromNumber, publicBaseUrl, apiKey, region = 'ie1', edge = 'dublin', client = twilio(accountSid, authToken, { region, edge, autoRetry: false, timeout: 10_000 }), WebSocketImpl = WebSocket, maxDurationSeconds = 60, closeTimeoutMs = 10_000, onState = () => {}, onSuppression = () => {} } = {}) {
+export function createTelephony({ accountSid, authToken, fromNumber, publicBaseUrl, apiKey, region = 'ie1', edge = 'dublin', client = twilio(accountSid, authToken, { region, edge, autoRetry: false, timeout: 10_000 }), WebSocketImpl = WebSocket, maxDurationSeconds = 300, closeTimeoutMs = 10_000, reportWaitMs = 20_000, onState = () => {}, onSuppression = () => {}, onFinished = () => {} } = {}) {
   const base = new URL(publicBaseUrl);
   if (base.protocol !== 'https:' || base.username || base.password || base.search || base.hash || base.pathname !== '/') throw new Error('Public telephony URL must be an HTTPS origin.');
   if (!/^AC[a-fA-F0-9]{32}$/u.test(accountSid) || !authToken || !apiKey || !phone.test(fromNumber)) throw new Error('Invalid telephony configuration.');
@@ -25,8 +27,31 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
   const snapshot = (call) => call ? { id: call.id, customerId: call.customerId, topicId: call.topicId, permission: call.permission, ...(call.callSid ? { callSid: call.callSid } : {}), state: call.state, liveState: call.liveState, finalized: call.phoneEnded && ['not-started', 'closed'].includes(call.liveState), startedAt: call.startedAt, ...(call.usage ? { usage: call.usage } : {}) } : null;
   const publish = (call) => onState(snapshot(call));
   const status = () => ({ configured: true, provider: 'twilio', reason: null, call: snapshot(current) });
+  // Dialogue is kept in memory only until the report is handed off.
+  const remember = (call, speaker, text) => {
+    if (typeof text !== 'string' || !text || call.dialogueLength + text.length > DIALOGUE_LIMIT) return;
+    call.dialogueLength += text.length;
+    const last = call.dialogue.at(-1);
+    if (last?.speaker === speaker) last.text += text; else call.dialogue.push({ speaker, text });
+    if (speaker === 'customer' && objectsToSummary(call.dialogue.at(-1).text)) call.summaryAllowed = false;
+  };
+  const report = (call) => {
+    if (call.reported) return;
+    call.reported = true;
+    clearTimeout(call.reportTimer);
+    const endedAt = call.endedAt ?? new Date().toISOString();
+    const carrier = call.carrierDuration !== undefined;
+    const summaryAllowed = call.summaryAllowed && call.permission === 'granted';
+    const data = { callId: call.id, customerId: call.customerId, topicId: call.topicId, permission: call.permission, outcome: call.state, startedAt: call.startedAt, answeredAt: call.answeredAt ?? null, endedAt,
+      durationSeconds: carrier ? call.carrierDuration : (call.answeredAt ? Math.max(0, Math.round((Date.parse(endedAt) - Date.parse(call.answeredAt)) / 1000)) : 0),
+      durationSource: carrier ? 'carrier' : 'local', summaryAllowed, dialogue: summaryAllowed ? call.dialogue : [] };
+    call.dialogue = [];
+    Promise.resolve().then(() => onFinished(data)).catch(() => {});
+  };
   const finish = (call) => {
     if (call.phoneEnded && ['not-started', 'closed'].includes(call.liveState)) {
+      call.endedAt ??= new Date().toISOString();
+      clearTimeout(call.wrapUpTimer);
       clearTimeout(call.deadline);
       clearTimeout(call.startupTimer);
       clearTimeout(call.closeTimer);
@@ -34,6 +59,9 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
       call.conversation?.dispose();
       call.media?.terminate();
       publish(call);
+      // Report after the final state is set; wait briefly for the carrier's duration.
+      if (call.carrierDuration !== undefined) report(call);
+      else if (!call.reported && !call.reportTimer) { call.reportTimer = setTimeout(() => report(call), reportWaitMs); call.reportTimer.unref?.(); }
     }
   };
   const send = (socket, data) => {
@@ -79,10 +107,11 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
     if (shuttingDown || (current && !terminal.has(current.state))) throw new TelephonyError('A call is already reserved or its closure is unconfirmed.');
     if (typeof customerId !== 'string' || !customerId || typeof mobile !== 'string' || !phone.test(mobile) || mobile === fromNumber) throw new TelephonyError('Invalid customer destination.', 400);
     openingForTopic(topicId); // Validate the server-approved topic before any paid operation.
-    const call = { id: randomUUID(), customerId, topicId, permission: 'pending', permissionAttempt: 0, permissionGate: new ConversationGate(topicId), state: 'dialing', liveState: 'not-started', startedAt: new Date().toISOString(), nonce: randomBytes(32).toString('hex'), phoneEnded: false };
+    const call = { id: randomUUID(), customerId, topicId, permission: 'pending', permissionAttempt: 0, permissionGate: new ConversationGate(topicId), state: 'dialing', liveState: 'not-started', startedAt: new Date().toISOString(), nonce: randomBytes(32).toString('hex'), phoneEnded: false, dialogue: [], dialogueLength: 0, summaryAllowed: true };
     current = call;
     publish(call); // Durable reservation must succeed before the paid request.
     const xml = permissionPrompt(call, openingForTopic(topicId));
+    remember(call, 'agent', openingForTopic(topicId));
     call.creation = (async () => {
       try {
         const result = await client.calls.create({ to: mobile, from: fromNumber, twiml: xml.toString(), timeLimit: maxDurationSeconds, timeout: 20, statusCallback: statusUrl, statusCallbackMethod: 'POST', statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'] });
@@ -131,6 +160,8 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
         const attempt = Number(new URL(request.url, base).searchParams.get('attempt'));
         if (call.permission !== 'pending' || attempt !== call.permissionAttempt || ['closing', 'unconfirmed'].includes(call.state) || terminal.has(call.state)) return respond(409);
         const speech = typeof params.SpeechResult === 'string' ? params.SpeechResult.trim() : '';
+        call.answeredAt ??= new Date().toISOString();
+        if (speech) remember(call, 'customer', speech.slice(0, 1000));
         const result = speech ? call.permissionGate.handleTranscript(speech) : call.permissionGate.handleSilence();
         let xml;
         if (result.action === 'consent_granted' && result.mayDiscussProduct) {
@@ -154,6 +185,8 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
         response.end(xml.toString());
         return;
       }
+      if (terminal.has(params.CallStatus) && /^[0-9]{1,6}$/u.test(params.CallDuration ?? '')) call.carrierDuration = Number(params.CallDuration);
+      if (params.CallStatus === 'in-progress') call.answeredAt ??= new Date().toISOString();
       if (!terminal.has(call.state)) {
         if (terminal.has(params.CallStatus)) {
           call.phoneEnded = true;
@@ -166,6 +199,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
           publish(call);
         }
       }
+      if (terminal.has(call.state) && call.carrierDuration !== undefined) report(call);
       respond(204);
     } catch { respond(400); }
   });
@@ -212,7 +246,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
       try {
         if (call.state === 'closing' || call.state === 'unconfirmed') return abort(call);
         call.liveState = 'starting';
-        send(live, { type: 'session.start', session: { model: 'gpt-live-1', store: false, instructions: buildConversationInstructions(call.topicId), audio: { format: { type: 'audio/pcmu', rate: 8000 }, output: { voice: 'marin' } }, delegation: { type: 'client' } } });
+        send(live, { type: 'session.start', session: { model: 'gpt-live-1', store: false, instructions: buildConversationInstructions(call.topicId), audio: { format: { type: 'audio/pcmu', rate: 8000 }, output: { voice: 'marin' } }, delegation: { type: 'responses', responses: { model: BACKEND_MODEL, instructions: buildBackendInstructions(call.topicId), reasoning: { effort: 'medium' }, tools: [KNOWLEDGE_TOOL], tool_choice: 'auto', parallel_tool_calls: false } } } });
       } catch { abort(call); }
     });
     live.on('message', (raw) => {
@@ -226,8 +260,10 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
           call.liveState = 'active';
           call.state = 'in-progress';
           publish(call);
-          call.conversation = createLiveConversation({ send: (event) => send(live, event), close: () => { try { send(call.media, { event: 'clear', streamSid: call.streamSid }); } catch { /* Stop still closes both legs. */ } abort(call); }, onSuppression: () => onSuppression(call.customerId), topicId: call.topicId, consentGranted: true });
+          call.conversation = createLiveConversation({ send: (event) => send(live, event), close: () => { try { send(call.media, { event: 'clear', streamSid: call.streamSid }); } catch { /* Stop still closes both legs. */ } abort(call); }, onSuppression: () => onSuppression(call.customerId), topicId: call.topicId, consentGranted: true, delegationMode: 'responses' });
           call.conversation.start();
+          const remaining = maxDurationSeconds * 1000 - (Date.now() - Date.parse(call.answeredAt ?? call.startedAt));
+          if (maxDurationSeconds > 90) call.wrapUpTimer = setTimeout(() => { try { send(live, { type: 'session.instructions.append', delegation_id: null, content: WRAP_UP }); } catch { /* The carrier limit still ends the call. */ } }, Math.max(0, remaining - 60_000));
         } else if (event.type === 'session.output_audio.delta' && call.state === 'in-progress') {
           if (typeof event.delta !== 'string') throw new Error('Invalid audio');
           send(call.media, { event: 'media', streamSid: call.streamSid, media: { payload: event.delta } });
@@ -244,6 +280,8 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
           if (event.type === 'session.input_transcript.delta' && event.delta?.trim()) {
             send(call.media, { event: 'clear', streamSid: call.streamSid });
           }
+          if (event.type === 'session.input_transcript.delta') remember(call, 'customer', event.delta);
+          if (event.type === 'session.output_transcript.delta') remember(call, 'agent', event.delta);
           call.conversation?.handle(event);
         }
       } catch { abort(call); }
@@ -255,6 +293,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
   async function shutdown() {
     shuttingDown = true;
     await stop();
+    if (current && terminal.has(current.state)) report(current);
     for (const socket of sockets.clients) socket.terminate();
     sockets.close();
     if (gateway.listening) await new Promise((resolve) => { gateway.close(resolve); gateway.closeAllConnections(); });

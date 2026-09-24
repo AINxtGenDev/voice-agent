@@ -28,7 +28,7 @@ test('outbound reservation prevents concurrent dial; carrier duration and signed
     const pending = f.app.start(destination);
     await assert.rejects(f.app.start(destination), /reserved/);
     await pending;
-    assert.equal(f.request().timeLimit, 60);
+    assert.equal(f.request().timeLimit, 300);
     assert.equal(f.request().timeout, 20);
     assert.equal(f.request().statusCallback, 'https://voice.example/twilio/status');
     assert.match(f.request().twiml, /<Gather/u);
@@ -224,5 +224,85 @@ test('permission withdrawal persists contact suppression and never opens Live', 
     assert.deepEqual(suppressed, ['fixture']);
     assert.match(result.body, /<Hangup/);
     assert.doesNotMatch(result.body, /<Stream/);
+  } finally { await f.app.shutdown(); }
+});
+
+test('finished call hands off carrier duration and dialogue once; objection drops content; backend is Terra', async () => {
+  class MockLive extends EventEmitter {
+    static OPEN = 1;
+    static instances = [];
+    constructor() { super(); this.readyState = 1; this.bufferedAmount = 0; this.sent = []; MockLive.instances.push(this); queueMicrotask(() => this.emit('open')); }
+    send(raw) {
+      const event = JSON.parse(raw);
+      this.sent.push(event);
+      if (event.type === 'session.start') queueMicrotask(() => this.emit('message', Buffer.from('{"type":"session.started"}')));
+      if (event.type === 'session.close') queueMicrotask(() => this.emit('message', Buffer.from('{"type":"session.closed","usage":{"seconds":180}}')));
+    }
+    close() { this.readyState = 3; this.emit('close'); }
+    terminate() { this.close(); }
+  }
+  for (const objection of [false, true]) {
+    MockLive.instances = [];
+    const finished = [];
+    const f = fixture({ WebSocketImpl: MockLive, onFinished: data => finished.push(data) });
+    const port = await listen(f.app);
+    try {
+      await f.app.start(destination);
+      const consent = await permission(port, 'Ja, gerne.');
+      const nonce = /name="reservation" value="([a-f0-9]+)"/u.exec(consent.body)[1];
+      const media = new WebSocket(`ws://127.0.0.1:${port}/twilio/media`, { headers: { 'X-Twilio-Signature': twilio.getExpectedTwilioSignature(authToken, 'wss://voice.example/twilio/media', {}) } });
+      await once(media, 'open');
+      media.send(JSON.stringify({ event: 'start', start: { accountSid, callSid, streamSid, customParameters: { reservation: nonce }, mediaFormat: { encoding: 'audio/x-mulaw', sampleRate: 8000, channels: 1 } } }));
+      await delay();
+      const live = MockLive.instances[0];
+      const delegation = live.sent[0].session.delegation;
+      assert.equal(delegation.type, 'responses');
+      assert.equal(delegation.responses.model, 'gpt-5.6-terra');
+      assert.deepEqual(delegation.responses.reasoning, { effort: 'medium' });
+      assert.equal(delegation.responses.tools[0].name, 'search_hpe_knowledge');
+      const emit = event => live.emit('message', Buffer.from(JSON.stringify(event)));
+      emit({ type: 'session.output_transcript.delta', delta: 'Was interessiert Sie besonders?' });
+      emit({ type: 'session.input_transcript.delta', delta: objection ? 'Bitte nicht aufschreiben. ' : 'Inferenz. ' });
+      emit({ type: 'session.input_transcript.delta', delta: 'Dienstag vormittags passt.' });
+      emit({ type: 'response.event', delegation_id: 'r1', event: { type: 'response.output_item.done', item: { type: 'function_call', call_id: 'call_1', name: 'search_hpe_knowledge', arguments: '{"query":"Inferenz"}' } } });
+      await delay();
+      assert.deepEqual(live.sent.slice(-2).map(e => e.type), ['response.item.create', 'response.create']);
+      assert.equal(await callback(port, { AccountSid: accountSid, CallSid: callSid, CallStatus: 'completed', CallDuration: '187' }), 204);
+      await delay(50);
+      assert.equal(await callback(port, { AccountSid: accountSid, CallSid: callSid, CallStatus: 'completed', CallDuration: '187' }), 204);
+      await delay();
+      assert.equal(finished.length, 1);
+      const [data] = finished;
+      assert.equal(data.durationSeconds, 187);
+      assert.equal(data.durationSource, 'carrier');
+      assert.equal(data.outcome, 'completed');
+      assert.ok(Date.parse(data.answeredAt) <= Date.parse(data.endedAt));
+      if (objection) {
+        assert.equal(data.summaryAllowed, false);
+        assert.deepEqual(data.dialogue, []);
+      } else {
+        assert.equal(data.summaryAllowed, true);
+        assert.deepEqual(data.dialogue.map(turn => turn.speaker), ['agent', 'customer', 'agent', 'customer']);
+        assert.match(data.dialogue[0].text, /schriftlichen Zusammenfassung/);
+        assert.equal(data.dialogue[1].text, 'Ja, gerne.');
+        assert.equal(data.dialogue[3].text, 'Inferenz. Dienstag vormittags passt.');
+      }
+    } finally { await f.app.shutdown(); }
+  }
+});
+
+test('without a carrier duration the report falls back to local timing after the wait', async () => {
+  const finished = [];
+  const f = fixture({ onFinished: data => finished.push(data), reportWaitMs: 30 });
+  const port = await listen(f.app);
+  try {
+    await f.app.start(destination);
+    await permission(port, 'Nein danke');
+    assert.equal(await callback(port, { AccountSid: accountSid, CallSid: callSid, CallStatus: 'completed' }), 204);
+    await delay(80);
+    assert.equal(finished.length, 1);
+    assert.equal(finished[0].durationSource, 'local');
+    assert.equal(finished[0].permission, 'denied');
+    assert.equal(finished[0].summaryAllowed, false);
   } finally { await f.app.shutdown(); }
 });

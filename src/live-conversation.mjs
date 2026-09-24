@@ -4,7 +4,10 @@ import { searchHpeKnowledge } from './hpe-knowledge.mjs';
 // Live transcript deltas are fragments, not final turns. Only client delegation
 // boundaries trigger conservative browser permission parsing. Phone permission
 // must already have been established from the carrier's final Gather result.
-export function createLiveConversation({ send, close, onSuppression = () => {}, topicId = 'hpe-private-cloud-ai', consentGranted = false, permissionTimeoutMs = 25_000 } = {}) {
+// With delegationMode 'responses' (telephone, after carrier-verified consent), the
+// configured backend model answers; this handler only executes its knowledge tool.
+export function createLiveConversation({ send, close, onSuppression = () => {}, topicId = 'hpe-private-cloud-ai', consentGranted = false, permissionTimeoutMs = 25_000, delegationMode = 'client' } = {}) {
+  if (delegationMode === 'responses' && !consentGranted) throw new Error('Responses delegation requires verified consent.');
   const gate = new ConversationGate(topicId);
   if (consentGranted) gate.handleTranscript('Ja');
   let transcript = '';
@@ -52,14 +55,35 @@ export function createLiveConversation({ send, close, onSuppression = () => {}, 
         seen.add(event.event_id);
       }
       if (event.type === 'session.input_transcript.delta') {
-        if (typeof event.delta !== 'string' || transcript.length + event.delta.length > 8000) return end();
-        transcript += event.delta;
+        if (typeof event.delta !== 'string' || (delegationMode === 'client' && transcript.length + event.delta.length > 8000)) return end();
+        // Client mode resets at each delegation; Responses mode keeps a window for withdrawal checks.
+        transcript = delegationMode === 'client' ? transcript + event.delta : (transcript + event.delta).slice(-500);
         // Withdrawal is conservative and immediate; it never grants permission.
         const withdrawal = /\b(stopp?|aufhören|aufhoeren|auflegen|beenden|abbrechen|widerrufe|kein interesse|keine zeit|jetzt nicht|nicht jetzt)\b/iu.test(transcript);
         const suppression = /(?:nicht mehr|nie wieder|keine weiteren).*(?:anrufen|anrufe|kontakt)|(?:rufen|kontaktieren).*?(?:nicht mehr|nie wieder)/iu.test(transcript);
         if (withdrawal || suppression || (!gate.mayDiscussProduct && /\bnein\b/iu.test(transcript))) {
           return end(suppression);
         }
+        return;
+      }
+      if (delegationMode === 'responses') {
+        if (event.type === 'session.delegation.created' && event.delegation?.target !== 'responses') return end();
+        const item = event.type === 'response.event' && event.event?.type === 'response.output_item.done' ? event.event.item : null;
+        if (item?.type !== 'function_call') return;
+        if (typeof item.call_id !== 'string' || item.call_id.length > 200 || delegations.has(item.call_id)) return;
+        if (delegations.size >= 100) return end();
+        delegations.add(item.call_id);
+        let output;
+        try {
+          const { query } = JSON.parse(item.arguments);
+          if (item.name !== 'search_hpe_knowledge' || typeof query !== 'string' || !query.trim() || query.length > 1000) throw new Error('Invalid tool call');
+          const evidence = searchHpeKnowledge(query);
+          output = JSON.stringify({ status: evidence.status, facts: evidence.facts.slice(0, 3).map((fact) => ({ text: fact.text, sources: fact.citations.map((citation) => `${citation.sourceId} ${citation.version ?? 'Webseite'} ${citation.section ?? ''}`.trim()) })), limitations: evidence.limitations.slice(0, 2) });
+        } catch { output = JSON.stringify({ status: 'error', message: 'Unbekanntes Werkzeug oder ungültige Anfrage. Keine Fakten verfügbar.' }); }
+        try {
+          send({ type: 'response.item.create', item: { type: 'function_call_output', call_id: item.call_id, output } });
+          send({ type: 'response.create' });
+        } catch { end(); }
         return;
       }
       if (event.type !== 'session.delegation.created') return;

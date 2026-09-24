@@ -4,6 +4,14 @@ Updated: 2026-09-24 (Europe/Vienna).
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
+## Call Reports, Meeting Goal, and Terra Delegation — 2026-09-24
+
+- After each telephone call, a Markdown report with date, time, duration, contact, outcome, and follow-up-meeting details (preferred times, online/on-site, interest, unverified e-mail) is written to the Git-ignored `reports/` directory. `gpt-5.6-luna` writes the summary with `store: false`; transcripts are not stored. Duration comes from Twilio's `CallDuration`, with local timing as a fallback.
+- The opening now announces the written summary before asking permission. An objection to notes, or a declined conversation, produces a metadata-only report. The agent's goal is a follow-up meeting with HPE experts; it never confirms a fixed appointment.
+- Telephone Live sessions now use Responses delegation to `gpt-5.6-terra` (reasoning effort medium) with the application-owned HPE knowledge function. The browser microphone test keeps client delegation. Calls default to 5 minutes with a wrap-up instruction about 1 minute before the end.
+- Three user-requested contacts were added to the private local database with contact permission not documented (calling blocked until recorded). Their details are intentionally excluded from this public record. The user designated one of them for future test calls; a real call still requires Twilio setup, a public HTTPS backend, and explicit authorization.
+- Verification: 80/80 offline tests passed, with mocked Live, Twilio, and OpenAI. One ordering defect (report emitted before final call state) was found by the new tests and fixed. No real call or paid request was made.
+
 ## Contact Database and Start Gating — 2026-09-24
 
 - The local prototype's SQLite contact database (`.private/`, owner-only, not in Git) now also stores the product for each name and mobile number, matching the public page's form. Existing databases are migrated in place by adding a column; the local database was backed up before migration.

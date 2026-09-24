@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { openingForTopic, buildConversationInstructions, ConversationGate } from '../src/conversation-policy.mjs';
 
 test('opening preserves the required German identity and permission wording', () => {
-  assert.equal(openingForTopic(), 'Guten Tag! Ich bin der HPE Sprachassistent, erstellt von Werner, und ein KI-Assistent. Darf ich mit Ihnen ein Gespräch zum Thema HPE Private Cloud AI führen?');
+  assert.equal(openingForTopic(), 'Guten Tag! Ich bin der HPE Sprachassistent, erstellt von Werner, und ein KI-Assistent. Das Gespräch halte ich danach in einer kurzen schriftlichen Zusammenfassung fest. Darf ich mit Ihnen ein Gespräch zum Thema HPE Private Cloud AI führen?');
   assert.throws(() => openingForTopic('injected topic'), RangeError);
   assert.throws(() => new ConversationGate('__proto__'), RangeError);
   assert.match(buildConversationInstructions(), /serverseitige Erlaubniszustand/);

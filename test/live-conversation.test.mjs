@@ -76,3 +76,25 @@ test('unanswered browser permission receives one deadline reminder and then clos
   assert.match(f.events[1].content, /Zustimmung/);
   assert.equal(f.closed(), 1);
 });
+
+test('responses delegation executes only the knowledge tool and continues the backend response', () => {
+  assert.throws(() => createLiveConversation({ send() {}, close() {}, delegationMode: 'responses' }), /consent/);
+  const f = fixture({ consentGranted: true, delegationMode: 'responses' });
+  f.conversation.start();
+  f.conversation.handle({ type: 'session.delegation.created', delegation: { id: 'r1', target: 'responses' } });
+  const call = (call_id, name, args) => f.conversation.handle({ type: 'response.event', delegation_id: 'r1', event: { type: 'response.output_item.done', item: { type: 'function_call', call_id, name, arguments: args } } });
+  call('call_1', 'search_hpe_knowledge', JSON.stringify({ query: 'Welche Betriebsvarianten gibt es, air-gapped?' }));
+  const [result, resume] = f.events.slice(-2);
+  assert.equal(result.type, 'response.item.create');
+  assert.equal(result.item.call_id, 'call_1');
+  assert.match(JSON.parse(result.item.output).facts[0].sources[0], /HPE-SERVICE/);
+  assert.deepEqual(resume, { type: 'response.create' });
+  call('call_1', 'search_hpe_knowledge', JSON.stringify({ query: 'Duplikat' }));
+  assert.equal(f.events.length, 3);
+  call('call_2', 'send_email', JSON.stringify({ query: 'x' }));
+  assert.equal(JSON.parse(f.events.at(-2).item.output).status, 'error');
+  for (let i = 0; i < 40; i++) f.text('Das klingt interessant, erzählen Sie mehr über die Architektur. ');
+  assert.equal(f.closed(), 0);
+  f.conversation.handle({ type: 'session.delegation.created', delegation: { id: 'c1', target: 'client' } });
+  assert.equal(f.closed(), 1);
+});
