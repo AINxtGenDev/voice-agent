@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { closeSync, lstatSync, mkdirSync, openSync } from 'node:fs';
 import { dirname } from 'node:path';
 
+export const PRODUCTS = ['HPE Private Cloud AI', 'HPE Storage Alletra MP X10000', 'HPE Networking'];
+
 export class CustomerError extends Error {
   constructor(message, status = 400) { super(message); this.status = status; }
 }
@@ -16,16 +18,17 @@ function privatePath(path, directory) {
 }
 
 function validateCustomer(input) {
-  if (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).some((key) => !['name', 'mobile', 'contactAllowed', 'permissionNote'].includes(key))) throw new CustomerError('Invalid customer fields.');
+  if (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).some((key) => !['name', 'mobile', 'product', 'contactAllowed', 'permissionNote'].includes(key))) throw new CustomerError('Invalid customer fields.');
   const name = typeof input.name === 'string' ? input.name.trim() : '';
   if (!name || name.length > 120 || /[\u0000-\u001f\u007f]/u.test(name)) throw new CustomerError('Name must contain 1–120 characters without control characters.');
   const mobile = typeof input.mobile === 'string' ? input.mobile.replace(/[\s()\-]/gu, '') : '';
   if (!/^\+[1-9][0-9]{7,14}$/u.test(mobile)) throw new CustomerError('Use an international mobile number, such as +436641234567; a country code is required.');
+  if (!PRODUCTS.includes(input.product)) throw new CustomerError('Choose one of the listed products.');
   if (typeof input.contactAllowed !== 'boolean') throw new CustomerError('Contact permission must be explicitly true or false.');
   if (input.permissionNote !== undefined && typeof input.permissionNote !== 'string') throw new CustomerError('Permission note must be text.');
   const permissionNote = (input.permissionNote ?? '').trim();
   if (permissionNote.length > 500 || /[\u0000-\u001f\u007f]/u.test(permissionNote)) throw new CustomerError('Permission note must contain at most 500 characters without control characters.');
-  return { name, mobile, contactAllowed: input.contactAllowed, permissionNote };
+  return { name, mobile, product: input.product, contactAllowed: input.contactAllowed, permissionNote };
 }
 
 function customer(row) {
@@ -49,6 +52,7 @@ export class CustomerStore {
           id TEXT PRIMARY KEY,
           name TEXT NOT NULL,
           mobile TEXT NOT NULL UNIQUE,
+          product TEXT NOT NULL DEFAULT '',
           contactAllowed INTEGER NOT NULL CHECK (contactAllowed IN (0, 1)),
           permissionNote TEXT NOT NULL,
           recordedAt TEXT NOT NULL
@@ -66,6 +70,9 @@ export class CustomerStore {
           result TEXT
         ) STRICT;
       `);
+      if (!this.db.prepare('PRAGMA table_info(customers)').all().some((column) => column.name === 'product')) {
+        this.db.exec("ALTER TABLE customers ADD COLUMN product TEXT NOT NULL DEFAULT ''");
+      }
     } catch (error) { this.db.close(); throw error; }
   }
 
@@ -80,7 +87,7 @@ export class CustomerStore {
     const values = validateCustomer(input);
     const result = { id: randomUUID(), ...values, recordedAt: new Date().toISOString() };
     try {
-      this.db.prepare('INSERT INTO customers (id, name, mobile, contactAllowed, permissionNote, recordedAt) VALUES (?, ?, ?, ?, ?, ?)').run(result.id, result.name, result.mobile, Number(result.contactAllowed), result.permissionNote, result.recordedAt);
+      this.db.prepare('INSERT INTO customers (id, name, mobile, product, contactAllowed, permissionNote, recordedAt) VALUES (?, ?, ?, ?, ?, ?, ?)').run(result.id, result.name, result.mobile, result.product, Number(result.contactAllowed), result.permissionNote, result.recordedAt);
     } catch (error) {
       if (error.errcode === 2067) throw new CustomerError('A customer with this mobile number already exists.', 409);
       throw error;

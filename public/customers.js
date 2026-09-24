@@ -1,6 +1,6 @@
 const ui = Object.fromEntries([
-  'customer-form', 'customer-name', 'customer-mobile', 'contact-allowed', 'permission-note',
-  'save-customer', 'customer-status', 'customer-select', 'customer-details', 'selected-mobile',
+  'customer-form', 'customer-name', 'customer-mobile', 'customer-product', 'contact-allowed', 'permission-note',
+  'save-customer', 'customer-status', 'customer-select', 'customer-details', 'selected-mobile', 'selected-product',
   'selected-permission', 'selected-note', 'selected-recorded', 'activate-agent', 'delete-customer', 'calling-status', 'stop-call', 'topic-select',
 ].map(id => [id, document.getElementById(id)]));
 let customers = [];
@@ -28,7 +28,7 @@ async function api(path, payload) {
   const body = await response.json();
   if (!response.ok) {
     const messages = {
-      400: 'Check the customer name, international mobile number, and permission note.',
+      400: 'Check the customer name, international mobile number, product, and permission note.',
       403: 'The request is not permitted. A call requires documented contact permission.',
       404: 'This customer no longer exists. Refresh the page to load current records.',
       409: path.startsWith('/api/calls') ? 'Anrufstart gesperrt. Laufenden oder ungeklärten Gesprächsstatus prüfen.' : 'A customer with this mobile number already exists.',
@@ -43,12 +43,13 @@ function renderSelection() {
   ui['customer-select'].disabled = busy || Boolean(pendingRequest) || callBlocked() || customers.length === 0;
   ui['save-customer'].disabled = busy;
   ui['delete-customer'].disabled = busy || callBlocked() || Boolean(pendingRequest) || !customer;
-  ui['activate-agent'].disabled = busy || callBlocked() || !providerConfigured || !customer?.contactAllowed;
+  ui['activate-agent'].disabled = busy || callBlocked() || !providerConfigured || !ui['topic-select'].value || !customer?.contactAllowed;
   ui['stop-call'].disabled = busy || !providerConfigured || !call || Boolean(call.finalized);
   ui['topic-select'].disabled = busy || Boolean(pendingRequest) || callBlocked();
   ui['customer-details'].hidden = !customer;
   if (customer) {
     ui['selected-mobile'].textContent = customer.mobile;
+    ui['selected-product'].textContent = customer.product || 'Not recorded';
     ui['selected-permission'].textContent = customer.contactAllowed ? 'Documented by operator' : 'Not documented — calling blocked';
     ui['selected-note'].textContent = customer.permissionNote || 'No reference recorded';
     const date = new Date(customer.recordedAt);
@@ -58,7 +59,7 @@ function renderSelection() {
     : callBlocked() ? `Telefonat: ${call.state}. Sprachdienst: ${call.liveState}. Abschluss noch nicht bestätigt.`
     : pendingRequest ? 'Anfrageausgang ungeklärt. Ein erneuter Versuch verwendet dieselbe Anfragekennung.'
     : !providerConfigured ? `${providerReason} No customer call can be placed.`
-    : !customer ? 'Select a customer before activating the voice agent.'
+    : !ui['topic-select'].value || !customer ? 'Choose a topic and a customer, then click “… start conversation”.'
       : !customer.contactAllowed ? 'Documented contact permission is required before calling.' : 'Telephone provider configured. Activation requests a customer call.';
 }
 function renderList(preferredId = ui['customer-select'].value) {
@@ -77,6 +78,7 @@ function renderList(preferredId = ui['customer-select'].value) {
   renderSelection();
 }
 ui['customer-select'].addEventListener('change', renderSelection);
+ui['topic-select'].addEventListener('change', renderSelection);
 ui['customer-form'].addEventListener('submit', async event => {
   event.preventDefault();
   if (busy) return;
@@ -92,7 +94,7 @@ ui['customer-form'].addEventListener('submit', async event => {
   status('Saving customer…');
   try {
     const result = await api('/api/customers', {
-      name, mobile, contactAllowed: ui['contact-allowed'].checked,
+      name, mobile, product: ui['customer-product'].value, contactAllowed: ui['contact-allowed'].checked,
       permissionNote: ui['permission-note'].value.trim(),
     });
     customers.push(result.customer);
@@ -118,7 +120,7 @@ ui['delete-customer'].addEventListener('click', async () => {
 });
 ui['activate-agent'].addEventListener('click', async () => {
   const customer = selected();
-  if (busy || callBlocked() || !providerConfigured || !customer?.contactAllowed) return;
+  if (busy || callBlocked() || !providerConfigured || !ui['topic-select'].value || !customer?.contactAllowed) return;
   busy = true;
   renderSelection();
   try {

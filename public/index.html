@@ -19,7 +19,7 @@
     <section class="session" aria-labelledby="topic-title">
       <h2 id="topic-title">Gesprächsthema und Vorstellung</h2>
       <label for="topic-select">Freigegebenes Thema</label>
-      <select id="topic-select"><option value="hpe-private-cloud-ai">HPE Private Cloud AI</option></select>
+      <select id="topic-select" required><option value="">Choose a topic…</option><option value="hpe-private-cloud-ai">HPE Private Cloud AI</option></select>
       <p id="opening-preview">Guten Tag! Ich bin der HPE Sprachassistent, erstellt von Werner, und ein KI-Assistent. Darf ich mit Ihnen ein Gespräch zum Thema HPE Private Cloud AI führen?</p>
       <p class="hint">Der Assistent spricht freundlich und respektvoll auf Deutsch. Erst nach ausdrücklicher Gesprächserlaubnis beginnt der Fachdialog. Bei Ablehnung beendet er das Gespräch.</p>
     </section>
@@ -30,6 +30,7 @@
         <div class="form-grid">
           <div><label for="customer-name">Customer name</label><input id="customer-name" name="name" autocomplete="off" maxlength="120" required placeholder="Example Customer"></div>
           <div><label for="customer-mobile">Mobile number</label><input id="customer-mobile" name="mobile" type="tel" autocomplete="off" maxlength="40" required aria-describedby="mobile-help" placeholder="+43 …"><p id="mobile-help" class="field-hint">Include the international country code, for example +43.</p></div>
+          <div><label for="customer-product">Product</label><select id="customer-product" name="product"><option value="HPE Private Cloud AI">HPE Private Cloud AI</option><option value="HPE Storage Alletra MP X10000">HPE Storage Alletra MP X10000</option><option value="HPE Networking">HPE Networking</option></select></div>
         </div>
         <label class="checkbox-label" for="contact-allowed"><input id="contact-allowed" name="contactAllowed" type="checkbox"><span>Contact permission has been documented for this person.</span></label>
         <label for="permission-note">Permission evidence or reference <span class="optional">(optional)</span></label>
@@ -40,8 +41,8 @@
       <p id="customer-status" role="status" aria-live="polite">Loading customer records…</p>
       <div class="customer-selection">
         <label for="customer-select">Select a saved customer</label><select id="customer-select" disabled><option value="">Loading…</option></select>
-        <dl id="customer-details" hidden><div><dt>Mobile</dt><dd id="selected-mobile"></dd></div><div><dt>Contact permission</dt><dd id="selected-permission"></dd></div><div><dt>Evidence / reference</dt><dd id="selected-note"></dd></div><div><dt>Recorded</dt><dd id="selected-recorded"></dd></div></dl>
-        <div class="actions"><button id="activate-agent" type="button" disabled aria-describedby="calling-status">Activate voice agent</button><button id="stop-call" class="secondary" type="button" disabled>Telefonat beenden</button><button id="delete-customer" class="secondary" type="button" disabled>Delete selected customer</button></div>
+        <dl id="customer-details" hidden><div><dt>Mobile</dt><dd id="selected-mobile"></dd></div><div><dt>Product</dt><dd id="selected-product"></dd></div><div><dt>Contact permission</dt><dd id="selected-permission"></dd></div><div><dt>Evidence / reference</dt><dd id="selected-note"></dd></div><div><dt>Recorded</dt><dd id="selected-recorded"></dd></div></dl>
+        <div class="actions"><button id="activate-agent" type="button" disabled aria-describedby="calling-status">… start conversation</button><button id="stop-call" class="secondary" type="button" disabled>Telefonat beenden</button><button id="delete-customer" class="secondary" type="button" disabled>Delete selected customer</button></div>
         <p id="calling-status" class="hint" role="status">Checking telephone provider configuration…</p>
       </div>
     </section>
@@ -56,7 +57,7 @@
       <label for="audio">Assistant audio</label><audio id="audio" controls autoplay></audio>
       <p class="hint">Microphone access is requested only when you start. If playback is blocked, use the audio controls.</p>
     </section>
-    <section class="notes" aria-labelledby="before-title"><h2 id="before-title">Before you begin</h2><ol><li>Use headphones and a quiet room.</li><li>Use invented names and synthetic examples only.</li><li>Say, for example: <span lang="de">„Ja, gerne.“ Fragen Sie anschließend beispielsweise nach den Einsatzmöglichkeiten von HPE Private Cloud AI.</span></li></ol><p>Audio is sent to OpenAI during the test. API charges apply. Der Mikrofontest ruft keine ausgewählte Person an. Telefonate werden separat über „Activate voice agent“ gestartet, sofern der Telefonanbieter eingerichtet ist.</p></section>
+    <section class="notes" aria-labelledby="before-title"><h2 id="before-title">Before you begin</h2><ol><li>Use headphones and a quiet room.</li><li>Use invented names and synthetic examples only.</li><li>Say, for example: <span lang="de">„Ja, gerne.“ Fragen Sie anschließend beispielsweise nach den Einsatzmöglichkeiten von HPE Private Cloud AI.</span></li></ol><p>Audio is sent to OpenAI during the test. API charges apply. Der Mikrofontest ruft keine ausgewählte Person an. Telefonate werden separat über „… start conversation“ gestartet, sofern der Telefonanbieter eingerichtet ist.</p></section>
     <footer>Local development only · GPT-Live · <a href="https://developers.openai.com/api/docs/guides/voice-webrtc?api=live" target="_blank" rel="noreferrer">Connection documentation</a></footer>
   </main>
 </body>

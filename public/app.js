@@ -10,7 +10,7 @@ function display(phase, message) {
   elements.status.textContent = message;
 }
 function buttons() {
-  elements.start.disabled = Boolean(current) || !terminalStates.has(serverState) || !elements['test-permission'].checked;
+  elements.start.disabled = Boolean(current) || !terminalStates.has(serverState) || !elements['test-permission'].checked || !elements['topic-select'].value;
   elements.stop.disabled = !current || current.stopping;
   elements['test-permission'].disabled = Boolean(current);
 }
@@ -102,7 +102,7 @@ async function heartbeat(run) {
   finally { run.beating = false; }
 }
 async function start() {
-  if (current || !terminalStates.has(serverState) || !elements['test-permission'].checked) return;
+  if (current || !terminalStates.has(serverState) || !elements['test-permission'].checked || !elements['topic-select'].value) return;
   const run = { done: false, stopping: false, ready: false, creating: false, topicId: elements['topic-select'].value, startedAt: Date.now() };
   current = run;
   buttons();
@@ -234,6 +234,7 @@ async function poll() {
   } finally { polling = false; }
 }
 elements['test-permission'].addEventListener('change', buttons);
+elements['topic-select'].addEventListener('change', buttons);
 elements.start.addEventListener('click', () => void start());
 elements.stop.addEventListener('click', () => current && stop(current));
 function leave() {

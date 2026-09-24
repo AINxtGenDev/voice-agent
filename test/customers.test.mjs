@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import { mkdtempSync, rmSync, statSync, chmodSync, symlinkSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, statSync, chmodSync, symlinkSync } from 'node:fs';
+import { DatabaseSync } from 'node:sqlite';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { CustomerStore } from '../src/customers.mjs';
@@ -12,7 +13,7 @@ function fixture() {
   const path = join(root, 'private', 'customers.sqlite');
   return { root, path, cleanup: () => rmSync(root, { recursive: true, force: true }) };
 }
-const input = { name: 'Test fixture', mobile: '+43 (664) 123-4567', contactAllowed: true, permissionNote: 'Automated test fixture only' };
+const input = { name: 'Test fixture', mobile: '+43 (664) 123-4567', product: 'HPE Networking', contactAllowed: true, permissionNote: 'Automated test fixture only' };
 
 test('customers persist privately, normalize numbers, reject duplicates, and remain deleted on restart', () => {
   const f = fixture();
@@ -23,6 +24,7 @@ test('customers persist privately, normalize numbers, reject duplicates, and rem
     const created = store.create({ ...input, name: ' Test fixture ' });
     assert.equal(created.name, 'Test fixture');
     assert.equal(created.mobile, '+436641234567');
+    assert.equal(created.product, 'HPE Networking');
     assert.equal(created.contactAllowed, true);
     assert.ok(Number.isFinite(Date.parse(created.recordedAt)));
     assert.equal(statSync(f.path).mode & 0o777, 0o600);
@@ -43,7 +45,7 @@ test('customer validation rejects local numbers, malformed fields, and implicit 
   const f = fixture();
   const store = new CustomerStore(f.path);
   try {
-    for (const invalid of [null, [], { ...input, name: '' }, { ...input, name: 'a'.repeat(121) }, { ...input, mobile: '06641234567' }, { ...input, mobile: '+0123456789' }, { ...input, mobile: '+4366abc4567' }, { ...input, contactAllowed: 'true' }, { ...input, contactAllowed: undefined }, { ...input, permissionNote: 'a'.repeat(501) }, { ...input, provider: 'injected' }]) {
+    for (const invalid of [null, [], { ...input, name: '' }, { ...input, name: 'a'.repeat(121) }, { ...input, mobile: '06641234567' }, { ...input, mobile: '+0123456789' }, { ...input, mobile: '+4366abc4567' }, { ...input, contactAllowed: 'true' }, { ...input, contactAllowed: undefined }, { ...input, permissionNote: 'a'.repeat(501) }, { ...input, product: undefined }, { ...input, product: 'Other product' }, { ...input, provider: 'injected' }]) {
       assert.throws(() => store.create(invalid), (error) => error.status === 400);
     }
     assert.deepEqual(store.list(), []);
@@ -51,6 +53,25 @@ test('customer validation rejects local numbers, malformed fields, and implicit 
     assert.equal(store.get(created.id).contactAllowed, false);
     assert.equal(store.get("' OR 1=1 --"), null);
   } finally { store.close(); f.cleanup(); }
+});
+
+test('customer store adds the product column to an existing database without losing records', () => {
+  const f = fixture();
+  let store;
+  try {
+    mkdirSync(join(f.root, 'private'), { mode: 0o700 });
+    const legacy = new DatabaseSync(f.path);
+    legacy.exec("CREATE TABLE customers (id TEXT PRIMARY KEY, name TEXT NOT NULL, mobile TEXT NOT NULL UNIQUE, contactAllowed INTEGER NOT NULL CHECK (contactAllowed IN (0, 1)), permissionNote TEXT NOT NULL, recordedAt TEXT NOT NULL) STRICT");
+    legacy.prepare('INSERT INTO customers VALUES (?, ?, ?, ?, ?, ?)').run('legacy', 'Legacy fixture', '+436641234567', 1, '', '2026-09-01T00:00:00.000Z');
+    legacy.close();
+    chmodSync(f.path, 0o600);
+    store = new CustomerStore(f.path);
+    assert.equal(store.get('legacy').product, '');
+    assert.equal(store.create({ ...input, mobile: '+436641234568' }).product, 'HPE Networking');
+    store.close();
+    store = new CustomerStore(f.path);
+    assert.equal(store.list().length, 2);
+  } finally { store?.close(); f.cleanup(); }
 });
 
 test('customer store rejects unsafe filesystem permissions and symlinked databases', () => {

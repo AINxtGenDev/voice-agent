@@ -4,6 +4,13 @@ Updated: 2026-09-24 (Europe/Vienna).
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
+## Contact Database and Start Gating — 2026-09-24
+
+- The local prototype's SQLite contact database (`.private/`, owner-only, not in Git) now also stores the product for each name and mobile number, matching the public page's form. Existing databases are migrated in place by adding a column; the local database was backed up before migration.
+- The GitHub Pages overview still stores contacts only in browser localStorage; it cannot write to a database without a backend. Contacts saved there were not imported.
+- The topic now has no default. “… start conversation” (formerly “Activate voice agent”) is enabled only after a topic and a person are chosen; the microphone test also requires a topic. Server-side tests confirm requests without a topic are rejected and start no call.
+- Verification: 74/74 offline tests passed. Browser check used a temporary synthetic database and a fake telephone provider: button disabled without a topic or without a person, one fake start only after clicking, 320px layout without horizontal overflow. No real call, SMS, or paid request was made; temporary resources were removed.
+
 ## HPE Agent Implementation Checkpoint — 2026-09-24
 
 **Work stopped at the user's request; resume next session.** No further paid tests or calls should run automatically. Next steps: investigate why the bounded Live test did not recognize the required introduction; add regression coverage for definitive call rejection and late closure reconciliation; then finish regional telephone configuration and obtain the intended private HTTPS backend address before public integration. A live customer call still requires explicit destination-specific authorization.

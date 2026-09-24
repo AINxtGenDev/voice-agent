@@ -33,7 +33,7 @@ async function fixture() {
     });
     req.on('error', reject); req.end(body === undefined ? undefined : JSON.stringify(body));
   });
-  const customer = store.create({ name: 'Synthetic contact', mobile: '+436641234567', contactAllowed: true });
+  const customer = store.create({ name: 'Synthetic contact', mobile: '+436641234567', product: 'HPE Private Cloud AI', contactAllowed: true });
   return { store, customer, telephony, starts: () => starts, request,
     cleanup: async () => { await server.shutdown(); rmSync(root, { recursive: true, force: true }); } };
 }
@@ -46,6 +46,9 @@ test('call start resolves destination server-side and retries cannot redial', as
     const body = { customerId: f.customer.id, topicId, requestId };
     assert.equal((await f.request('/api/calls', { ...body, mobile: '+436641234568' })).status, 400);
     assert.equal((await f.request('/api/calls', { ...body, topicId: 'injected' })).status, 400);
+    assert.equal((await f.request('/api/calls', { ...body, topicId: '' })).status, 400);
+    assert.equal((await f.request('/api/calls', { customerId: f.customer.id, requestId })).status, 400);
+    assert.equal(f.starts(), 0);
     assert.equal((await f.request('/api/calls', body)).status, 201);
     assert.equal((await f.request('/api/calls', body)).status, 200);
     assert.equal(f.starts(), 1);
