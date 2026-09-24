@@ -1,8 +1,19 @@
 # Session Status
 
-Updated: 2026-09-24 (Europe/Vienna).
+Updated: 2026-09-24 (Europe/Vienna). Latest code commit: `b61f6a9`.
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
+
+## Resume Here — 2026-09-24
+
+Latest code commit: `b61f6a9`. Session ended after the call-report feature; no work in progress. Local backups of the contact database from before each change remain in the private directory.
+
+Open risks and decisions:
+
+- **Premature hang-up risk:** the existing withdrawal check ends a call on words such as "beenden" or "jetzt nicht" anywhere in recent customer speech, even in unrelated sentences. Calls are now 5 minutes, so this is more likely. Review before customer calls.
+- **Designated test contact is blocked:** it was saved without documented contact permission, and no edit function exists. Either add an edit option or delete and re-add it with permission.
+- **Pending decision:** keep the summary model on `gpt-5.6-luna` (about 0.2 cents per call) or switch it to `gpt-5.6-terra` (about 1–2 cents).
+- The summary notice in the opening is a design choice, not a legal review.
 
 ## Call Reports, Meeting Goal, and Terra Delegation — 2026-09-24
 
@@ -132,11 +143,12 @@ This is a public project status record. Keep credentials, customer information, 
 
 ## Next Steps
 
-1. Review the existing local telephony module, tests, and server integration without discarding uncommitted work.
-2. Complete regional voice authentication, signed callbacks, durable call-state reconciliation, and start/stop controls. Keep customer administration private.
-3. Run appropriate offline tests and review failure handling before a live call.
-4. Obtain explicit authorization for a bounded test call to a specified destination. Verify two-way audio and confirmed termination before reporting telephone voice as operational.
-5. Keep this public status record current; retain private troubleshooting details separately. A future repository visibility change requires a separate decision and has not been performed.
+1. Narrow the withdrawal check so ordinary sentences do not end the call; add regression tests.
+2. Unblock the designated test contact (edit option, or re-add with documented permission).
+3. Finish IE1 Twilio voice configuration and provide a public HTTPS backend address routing only the callback and media paths.
+4. Obtain explicit authorization for a bounded test call to the designated test contact. Verify two-way audio, the spoken introduction, Terra-backed answers, confirmed termination, and the generated report (date, time, carrier duration, summary quality).
+5. Decide the summary model (Luna or Terra).
+6. Keep this public status record current; retain private troubleshooting details separately. A future repository visibility change requires a separate decision and has not been performed.
 
 ## Sources
 
