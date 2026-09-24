@@ -1,17 +1,20 @@
 # Session Status
 
-Updated: 2026-09-24 (Europe/Vienna). Latest code commit: `b61f6a9`.
+Updated: 2026-09-24 (Europe/Vienna). Latest code commit: `56b5c47`.
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
 ## Resume Here — 2026-09-24
 
-Latest code commit: `b61f6a9`. Session ended after the call-report feature; no work in progress. Local backups of the contact database from before each change remain in the private directory.
+Latest code commit: `56b5c47` (early hang-up fix). No work in progress; no tunnel or server is running.
 
-Open risks and decisions:
+**Blocker for the first real call:** the Twilio credentials in the private key store authenticate only in the default US1 region (HTTP 401 / error 20003 in IE1). The caller number is an IE1 number, so the IE1 **Auth Token** is required (Twilio Console → API Keys & auth tokens → Region selector: Ireland). The stored IE1 API key pair cannot replace it, because the loader and callback signature validation expect an Auth Token. Whether IE1 callbacks are signed with the IE1 token was not confirmed in Twilio's documentation.
 
-- **Premature hang-up risk:** the existing withdrawal check ends a call on words such as "beenden" or "jetzt nicht" anywhere in recent customer speech, even in unrelated sentences. Calls are now 5 minutes, so this is more likely. Review before customer calls.
-- **Designated test contact is blocked:** it was saved without documented contact permission, and no edit function exists. Either add an edit option or delete and re-add it with permission.
+First test-call attempt (user-authorized, to the operator's own number, 3-minute limit): the call request was rejected by Twilio IE1 before dialing, so no phone rang and no paid call occurred. It was recorded as `failed`/finalized with no unresolved journal, and a metadata-only report was written as designed. Setup used a checksum-verified `cloudflared` 2026.9.2 quick tunnel exposing only the signed gateway on port 3001 (public probes: 404 elsewhere, 403 unsigned); tunnel and server were stopped afterwards.
+
+Remaining open items:
+
+- Provide IE1 credentials in a private owner-only file, then repeat the bounded test call.
 - **Pending decision:** keep the summary model on `gpt-5.6-luna` (about 0.2 cents per call) or switch it to `gpt-5.6-terra` (about 1–2 cents).
 - The summary notice in the opening is a design choice, not a legal review.
 
@@ -143,12 +146,11 @@ Open risks and decisions:
 
 ## Next Steps
 
-1. Narrow the withdrawal check so ordinary sentences do not end the call; add regression tests.
-2. Unblock the designated test contact (edit option, or re-add with documented permission).
-3. Finish IE1 Twilio voice configuration and provide a public HTTPS backend address routing only the callback and media paths.
-4. Obtain explicit authorization for a bounded test call to the designated test contact. Verify two-way audio, the spoken introduction, Terra-backed answers, confirmed termination, and the generated report (date, time, carrier duration, summary quality).
-5. Decide the summary model (Luna or Terra).
-6. Keep this public status record current; retain private troubleshooting details separately. A future repository visibility change requires a separate decision and has not been performed.
+1. Store the IE1 Twilio Auth Token privately and repeat the bounded test call through a temporary tunnel (withdrawal fix and test-contact permission are done).
+2. Replace the temporary tunnel with a durable HTTPS endpoint before regular use.
+3. Obtain explicit authorization for a bounded test call to the designated test contact. Verify two-way audio, the spoken introduction, Terra-backed answers, confirmed termination, and the generated report (date, time, carrier duration, summary quality).
+4. Decide the summary model (Luna or Terra).
+5. Keep this public status record current; retain private troubleshooting details separately. A future repository visibility change requires a separate decision and has not been performed.
 
 ## Sources
 
