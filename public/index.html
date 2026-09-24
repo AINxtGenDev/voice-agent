@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HPE Austria Marketing Agent · Local prototype</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+  <script type="module" src="/customers.js"></script>
+</head>
+<body>
+  <main>
+    <header><span class="brand">HPE AUSTRIA / MARKETING AGENT</span><span class="badge">Local prototype</span></header>
+    <section class="intro" aria-labelledby="title">
+      <p class="eyebrow">Customer preparation · Local prototype</p>
+      <h1 id="title">Choose your customer.<br>Prepare the conversation.</h1>
+      <p class="lede">Save a customer and mobile number, then select the contact for your HPE marketing agent. Outbound calls require a configured telephone provider.</p>
+    </section>
+    <section class="session" aria-labelledby="topic-title">
+      <h2 id="topic-title">Gesprächsthema und Vorstellung</h2>
+      <label for="topic-select">Freigegebenes Thema</label>
+      <select id="topic-select"><option value="hpe-private-cloud-ai">HPE Private Cloud AI</option></select>
+      <p id="opening-preview">Guten Tag! Ich bin der HPE Sprachassistent, erstellt von Werner, und ein KI-Assistent. Darf ich mit Ihnen ein Gespräch zum Thema HPE Private Cloud AI führen?</p>
+      <p class="hint">Der Assistent spricht freundlich und respektvoll auf Deutsch. Erst nach ausdrücklicher Gesprächserlaubnis beginnt der Fachdialog. Bei Ablehnung beendet er das Gespräch.</p>
+    </section>
+    <section class="session customer-panel" aria-labelledby="customers-title">
+      <div class="session-heading"><h2 id="customers-title">Customer contacts</h2><span class="badge">Private local storage</span></div>
+      <p class="hint">For this prototype, enter synthetic contacts only. Records are saved by the local server, separately from the public overview.</p>
+      <form id="customer-form">
+        <div class="form-grid">
+          <div><label for="customer-name">Customer name</label><input id="customer-name" name="name" autocomplete="off" maxlength="120" required placeholder="Example Customer"></div>
+          <div><label for="customer-mobile">Mobile number</label><input id="customer-mobile" name="mobile" type="tel" autocomplete="off" maxlength="40" required aria-describedby="mobile-help" placeholder="+43 …"><p id="mobile-help" class="field-hint">Include the international country code, for example +43.</p></div>
+        </div>
+        <label class="checkbox-label" for="contact-allowed"><input id="contact-allowed" name="contactAllowed" type="checkbox"><span>Contact permission has been documented for this person.</span></label>
+        <label for="permission-note">Permission evidence or reference <span class="optional">(optional)</span></label>
+        <textarea id="permission-note" name="permissionNote" rows="2" maxlength="500" aria-describedby="permission-help" placeholder="Source, date, purpose, or reference to the permission record"></textarea>
+        <p id="permission-help" class="field-hint">This records your assessment and supporting reference. A checkbox alone does not establish legal compliance or authorize a call.</p>
+        <button id="save-customer" type="submit">Save customer</button>
+      </form>
+      <p id="customer-status" role="status" aria-live="polite">Loading customer records…</p>
+      <div class="customer-selection">
+        <label for="customer-select">Select a saved customer</label><select id="customer-select" disabled><option value="">Loading…</option></select>
+        <dl id="customer-details" hidden><div><dt>Mobile</dt><dd id="selected-mobile"></dd></div><div><dt>Contact permission</dt><dd id="selected-permission"></dd></div><div><dt>Evidence / reference</dt><dd id="selected-note"></dd></div><div><dt>Recorded</dt><dd id="selected-recorded"></dd></div></dl>
+        <div class="actions"><button id="activate-agent" type="button" disabled aria-describedby="calling-status">Activate voice agent</button><button id="stop-call" class="secondary" type="button" disabled>Telefonat beenden</button><button id="delete-customer" class="secondary" type="button" disabled>Delete selected customer</button></div>
+        <p id="calling-status" class="hint" role="status">Checking telephone provider configuration…</p>
+      </div>
+    </section>
+    <section class="operator-heading" aria-labelledby="operator-title"><p class="eyebrow">Separate operator test</p><h2 id="operator-title">Test the assistant in your browser</h2><p class="hint">This connects your own microphone to the AI. It does not call the selected customer or send customer details. The app requests closure after <span id="limit">60</span> seconds.</p></section>
+    <section class="session" aria-labelledby="session-title">
+      <div class="session-heading"><h2 id="session-title">Operator conversation</h2><span id="phase" class="badge">Checking server</span></div>
+      <p id="status" role="status" aria-live="polite">Checking whether the local server is ready…</p>
+      <div class="metrics"><div><span>Elapsed</span><strong id="elapsed">00:00</strong></div><div><span>Reported voice usage</span><strong id="usage">Not available</strong></div></div>
+      <label class="checkbox-label" for="test-permission"><input id="test-permission" type="checkbox"><span>Ich starte selbst diesen kostenpflichtigen lokalen Mikrofontest.</span></label>
+      <p class="hint">Diese Auswahl bestätigt nur Ihren Teststart. Die gesprochene Vorstellung und Erlaubnisfrage folgen im Gespräch. Im Browserprototyp ist die Erlaubnisprüfung noch keine zuverlässig abgesicherte Audiosperre.</p>
+      <div class="actions"><button id="start" type="button" disabled>Start voice test</button><button id="stop" class="secondary" type="button" disabled>End test</button></div>
+      <label for="audio">Assistant audio</label><audio id="audio" controls autoplay></audio>
+      <p class="hint">Microphone access is requested only when you start. If playback is blocked, use the audio controls.</p>
+    </section>
+    <section class="notes" aria-labelledby="before-title"><h2 id="before-title">Before you begin</h2><ol><li>Use headphones and a quiet room.</li><li>Use invented names and synthetic examples only.</li><li>Say, for example: <span lang="de">„Ja, gerne.“ Fragen Sie anschließend beispielsweise nach den Einsatzmöglichkeiten von HPE Private Cloud AI.</span></li></ol><p>Audio is sent to OpenAI during the test. API charges apply. Der Mikrofontest ruft keine ausgewählte Person an. Telefonate werden separat über „Activate voice agent“ gestartet, sofern der Telefonanbieter eingerichtet ist.</p></section>
+    <footer>Local development only · GPT-Live · <a href="https://developers.openai.com/api/docs/guides/voice-webrtc?api=live" target="_blank" rel="noreferrer">Connection documentation</a></footer>
+  </main>
+</body>
+</html>

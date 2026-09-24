@@ -4,6 +4,18 @@ Updated: 2026-09-24 (Europe/Vienna).
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
+## HPE Agent Implementation Checkpoint — 2026-09-24
+
+**Work stopped at the user's request; resume next session.** No further paid tests or calls should run automatically. Next steps: investigate why the bounded Live test did not recognize the required introduction; add regression coverage for definitive call rejection and late closure reconciliation; then finish regional telephone configuration and obtain the intended private HTTPS backend address before public integration. A live customer call still requires explicit destination-specific authorization.
+
+- Implemented shared German identity and permission rules, a curated versioned HPE lookup, and Live client-delegation integration. Three subagents contributed; one stopped at a runtime credit limit and its remaining integration work was handled in the main session.
+- Added a telephone permission gate using signed Twilio Gather callbacks before opening Live media, one clarification, topic validation, stop controls, contact suppression, durable call/request records, and duplicate-request protection. Regional defaults are IE1/Dublin. No real telephone call was made; carrier recognition and audio behavior remain unverified.
+- Added local topic selection, introduction preview, explicit paid microphone-test opt-in, call status and stop controls. Corrected the shared credential parser so a named OpenAI record does not consume another provider's later key.
+- Offline suite passed 73 tests before the final documentation checkpoint. Browser UI tests used a temporary synthetic database with paid requests disabled: contact save/select, unchecked opt-in, keyboard focus, and 320px layout passed. Initial document-navigation rejection was fixed; API origin validation remains. Temporary browser/server resources were closed.
+- Bounded live check: startup, instruction acknowledgment, output audio, and server-confirmed closure succeeded; usage reported 14 seconds, zero provider errors. The introduction transcript check did **not** pass, so the overall live acceptance test failed. Exact spoken introduction, microphone dialogue, interruptions, and end-to-end grounded answers remain unverified.
+- Public GitHub Pages calling remains disabled. HTTPS backend address and production authentication are still missing; no public deployment or account configuration was performed. Full HPE manual ingestion, reporting and email remain outstanding. See [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) for configuration and limits.
+- This is an implementation checkpoint, not production acceptance. User requested updating the session record, committing and pushing it.
+
 ## German HPE Voice Agent Requirements — 2026-09-24
 
 - Added [HPE_AGENT_PLAN.md](HPE_AGENT_PLAN.md): selected person/topic workflow, German dialogue, very friendly and respectful conduct, introduction as an AI-based HPE Sprachassistent created by Werner, and explicit permission before product discussion.

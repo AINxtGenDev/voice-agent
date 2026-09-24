@@ -1,6 +1,6 @@
 # HPE Private Cloud AI – Quellenregister für den Sprachagenten
 
-Geprüft am 24. September 2026. Dies ist ein kuratierter Ausgangspunkt, **kein vollständig eingelesener Dokumentbestand und keine bereits angeschlossene Wissensdatenbank**. Gesprächsregeln: [HPE_AGENT_PLAN.md](HPE_AGENT_PLAN.md).
+Geprüft am 24. September 2026. Dies ist ein kuratierter Ausgangspunkt, **kein vollständig eingelesener Dokumentbestand**. Die geprüften Kernaussagen sind inzwischen als lokale Wissenssuche in `src/hpe-knowledge.mjs` an die Client-Delegation angeschlossen; ein erfolgreiches vollständiges Fachgespräch ist noch nicht nachgewiesen. Gesprächsregeln: [HPE_AGENT_PLAN.md](HPE_AGENT_PLAN.md).
 
 ## Angegebene Quellen und Prüfstand
 

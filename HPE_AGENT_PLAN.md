@@ -2,6 +2,8 @@
 
 Stand: 24. September 2026. **Verbindliche Zielanforderungen; noch keine betriebsbereite Integration.** Ergänzt [PLAN.md](PLAN.md). Bei abweichenden älteren Gesprächsregeln gilt dieser Plan.
 
+Implementierungsstand: Gemeinsame Gesprächsregeln, kuratierte Wissenssuche, lokale Oberfläche und ein Telefonadapter mit vorgeschalteter Erlaubnisabfrage sind umgesetzt. Produktionsanbindung und vollständige Sprachabnahme fehlen; maßgeblich ist der aktuelle Nachweis in [session.md](session.md).
+
 ## 1. Gewünschter Ablauf
 
 1. Werner wählt auf der Webseite einen gespeicherten Gesprächspartner und das Thema **HPE Private Cloud AI** aus. Weitere Themen benötigen jeweils eine eigene geprüfte Wissensbasis.

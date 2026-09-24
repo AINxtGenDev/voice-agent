@@ -1,0 +1,21 @@
+{
+  "name": "voice-agent-local-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.17"
+  },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test",
+    "check:access": "node scripts/check-access.mjs",
+    "test:live": "node scripts/smoke-live.mjs",
+    "test:agent-live": "node scripts/check-agent-live.mjs",
+    "check:twilio": "node scripts/check-twilio.mjs"
+  },
+  "dependencies": {
+    "twilio": "6.1.1",
+    "ws": "8.21.3"
+  }
+}
