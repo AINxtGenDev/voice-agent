@@ -10,7 +10,7 @@ This is a public project status record. Keep credentials, customer information, 
 - The operator UI requires a password (Caddy basic auth). Only `/twilio/*` is open, and unsigned requests are rejected (403). The app container has no host port. Credentials, contact database and reports are mounted from private host directories outside Git.
 - Code change: `PUBLIC_UI_ORIGIN` (one accepted HTTPS origin) and `LISTEN_HOST`. 84/84 offline tests pass.
 - Verified from the server: 401 without/with wrong password, 200 with password, telephony `configured: true`, signed-gateway rejection, valid certificate. Reachability from outside the home network was confirmed by the user on a phone over mobile data (login and UI work). **Not yet verified:** whether Twilio accepts the non-443 port for callbacks and the media WebSocket (its docs only name 443). A bounded test call settles both; it needs explicit authorization.
-- GitHub Pages stays online until the Docker deployment has passed a real call; disabling it is a separate step.
+- GitHub Pages was disabled at the user's request on 2026-09-25 (API and public URL both return 404). Previous source: `main` `/docs`. `docs/` remains in Git; removing it is a separate decision.
 
 ## Resume Here — 2026-09-25
 
@@ -131,7 +131,9 @@ Latest code commit: `8258a31`. No work in progress. Nothing is running (no tunne
 - Published website commit: `7d48dc3` — Add animated HPE logo and temporary contact form. Public HTML and logo both returned HTTP 200 and matched the committed files exactly after deployment.
 - The earlier temporary form was superseded by the saved-contact implementation above. Contacts still are not stored on a server, and no calls/messages are initiated.
 
-## Published Website
+## Published Website — Disabled 2026-09-25
+
+- Superseded by the Docker deployment; the entries below are historical.
 
 - Live website: [Voice Agent](https://ainxtgendev.github.io/voice-agent/).
 - GitHub Pages publishes `docs/` from `main`. The repository remains public.
@@ -161,7 +163,7 @@ Latest code commit: `8258a31`. No work in progress. Nothing is running (no tunne
 1. Get the user's feedback on the first call (see open questions above) and adjust the meeting-request instructions, especially e-mail capture.
 2. With explicit authorization, run a bounded test call to the designated test contact on one of the new topics. Verify the 2-second pause, QuickSpecs answers, e-mail spelled back, and the Terra-written report.
 3. Upload the repaired `hpe-quickspecs` skill to claude.ai.
-4. With authorization, run a bounded test call through the Docker deployment (replaces the temporary tunnel); if Twilio rejects port 10556, forward external 443 instead. Then disable GitHub Pages.
+4. With authorization, run a bounded test call through the Docker deployment (replaces the temporary tunnel); if Twilio rejects port 10556, forward external 443 instead.
 5. Keep this public status record current; retain private troubleshooting details separately. A future repository visibility change requires a separate decision and has not been performed.
 
 ## Sources
