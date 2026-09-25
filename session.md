@@ -6,6 +6,8 @@ This is a public project status record. Keep credentials, customer information, 
 
 ## Docker Deployment — 2026-09-25
 
+- Reboot test on 2026-09-25: the host came back within about 40 seconds and the Docker stack restarted on its own. Login, signed-gateway rejection, telephony status, and DuckDNS update all passed afterwards.
+- The UI login now uses operator-defined credentials kept in a private file on the server (only a hash is in the Caddy configuration).
 - README updated for the Docker deployment and Pages shutdown; the user's earlier uncommitted README edits were included at their request.
 
 - The agent now runs in Docker on a private home server behind Caddy at `https://voicehpe.duckdns.org:10556` (commit `3a1cbd7`). Let's Encrypt certificate obtained via DuckDNS DNS-01; a DuckDNS updater refreshes the address every 5 minutes.
