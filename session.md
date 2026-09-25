@@ -6,7 +6,7 @@ This is a public project status record. Keep credentials, customer information, 
 
 ## Resume Here — 2026-09-24
 
-Latest code commit: `55eb6a1` (IE1 Auth Token support). No work in progress; no tunnel or server is running.
+Latest code commit: see `git log` (QuickSpecs knowledge, 2026-09-25). No work in progress; no tunnel or server is running.
 
 **First real telephone call succeeded** (user-authorized bounded test to the operator's own number, 3-minute limit, 18:25 Europe/Vienna):
 
@@ -15,6 +15,8 @@ Latest code commit: `55eb6a1` (IE1 Auth Token support). No work in progress; no 
 - The Markdown report was written automatically with date, time, carrier duration, meeting wanted (yes), preferred times, online format, and main interest. **No e-mail address was captured**, so the invitation step is not yet complete.
 - Not yet determined: who ended the call (customer hang-up, withdrawal detection, or the agent), audio quality, and whether Terra's knowledge-tool answers were correct. The server does not log dialogue content by design.
 - Earlier attempt at 18:11 failed before dialing (US1 token used against IE1); resolved by adding the IE1 token.
+
+**QuickSpecs knowledge (2026-09-25):** the agent now covers three topics (Private Cloud AI, Alletra MP X10000, CX 6300) with 41 reviewed, page-cited QuickSpecs facts; search is topic-scoped. PDFs came through the browser; the `hpe-quickspecs` skill's parser extracted them, but its library search is broken (returns only navigation links). 83/83 offline tests passed. Not yet used on a real call.
 
 Remaining open items:
 

@@ -2,7 +2,7 @@ import http from 'node:http';
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import twilio from 'twilio';
 import WebSocket, { WebSocketServer } from 'ws';
-import { openingForTopic, buildConversationInstructions, buildBackendInstructions, objectsToSummary, BACKEND_MODEL, KNOWLEDGE_TOOL, ConversationGate } from './conversation-policy.mjs';
+import { openingForTopic, topicName, buildConversationInstructions, buildBackendInstructions, objectsToSummary, BACKEND_MODEL, KNOWLEDGE_TOOL, ConversationGate } from './conversation-policy.mjs';
 import { createLiveConversation } from './live-conversation.mjs';
 
 const terminal = new Set(['completed', 'failed', 'busy', 'no-answer', 'canceled']);
@@ -174,7 +174,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
           xml.hangup();
         } else if (result.action !== 'end' && attempt === 0) {
           call.permissionAttempt = 1;
-          xml = permissionPrompt(call, result.message || 'Darf ich mit Ihnen über HPE Private Cloud AI sprechen? Bitte antworten Sie mit Ja oder Nein.');
+          xml = permissionPrompt(call, result.message || `Darf ich mit Ihnen über ${topicName(call.topicId)} sprechen? Bitte antworten Sie mit Ja oder Nein.`);
         } else {
           call.permission = 'denied';
           if (result.suppressContact) onSuppression(call.customerId);

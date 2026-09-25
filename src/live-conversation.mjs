@@ -1,4 +1,4 @@
-import { ConversationGate, classifyWithdrawal, openingForTopic } from './conversation-policy.mjs';
+import { ConversationGate, classifyWithdrawal, openingForTopic, topicName } from './conversation-policy.mjs';
 import { searchHpeKnowledge } from './hpe-knowledge.mjs';
 
 // Live transcript deltas are fragments, not final turns. Only client delegation
@@ -57,7 +57,7 @@ export function createLiveConversation({ send, close, onSuppression = () => {}, 
       if (started || disposed) return;
       started = true;
       append('session.instructions.append', consentGranted
-        ? 'Die ausdrückliche Gesprächserlaubnis wurde vor Verbindungsaufbau geprüft. Bedanke dich freundlich und frage: Was interessiert Sie an HPE Private Cloud AI besonders? Produktdetails nur nach belegter Recherche. Delegiere jede Fachfrage.'
+        ? `Die ausdrückliche Gesprächserlaubnis wurde vor Verbindungsaufbau geprüft. Bedanke dich freundlich und frage: Was interessiert Sie an ${topicName(topicId)} besonders? Produktdetails nur nach belegter Recherche. Delegiere jede Fachfrage.`
         : `Sprich zuerst exakt: ${openingForTopic(topicId)} Warte anschließend auf ausdrückliche Zustimmung. Delegiere die Antwort zur Prüfung. Keine Produktdetails vor serverseitiger Freigabe.`);
       waitForPermission();
     },
@@ -99,7 +99,7 @@ export function createLiveConversation({ send, close, onSuppression = () => {}, 
         try {
           const { query } = JSON.parse(item.arguments);
           if (item.name !== 'search_hpe_knowledge' || typeof query !== 'string' || !query.trim() || query.length > 1000) throw new Error('Invalid tool call');
-          const evidence = searchHpeKnowledge(query);
+          const evidence = searchHpeKnowledge(query, topicId);
           output = JSON.stringify({ status: evidence.status, facts: evidence.facts.slice(0, 3).map((fact) => ({ text: fact.text, sources: fact.citations.map((citation) => `${citation.sourceId} ${citation.version ?? 'Webseite'} ${citation.section ?? ''}`.trim()) })), limitations: evidence.limitations.slice(0, 2) });
         } catch { output = JSON.stringify({ status: 'error', message: 'Unbekanntes Werkzeug oder ungültige Anfrage. Keine Fakten verfügbar.' }); }
         try {
@@ -125,7 +125,7 @@ export function createLiveConversation({ send, close, onSuppression = () => {}, 
           : `${result.message} Produktwissen bleibt gesperrt. Warte auf die Antwort und delegiere sie erneut.`, id);
         return;
       }
-      const evidence = searchHpeKnowledge(query);
+      const evidence = searchHpeKnowledge(query, topicId);
       // Each append is intentionally short; full evidence stays on the server.
       for (const fact of evidence.facts.slice(0, 2)) {
         const citation = fact.citations[0];

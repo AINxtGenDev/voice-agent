@@ -78,7 +78,12 @@ function renderList(preferredId = ui['customer-select'].value) {
   renderSelection();
 }
 ui['customer-select'].addEventListener('change', renderSelection);
-ui['topic-select'].addEventListener('change', renderSelection);
+let topics = [];
+ui['topic-select'].addEventListener('change', () => {
+  const topic = topics.find(item => item.id === ui['topic-select'].value);
+  if (topic) document.getElementById('opening-preview').textContent = topic.opening;
+  renderSelection();
+});
 ui['customer-form'].addEventListener('submit', async event => {
   event.preventDefault();
   if (busy) return;
@@ -161,6 +166,7 @@ async function pollCalling() {
 async function initialize() {
   busy = true;
   renderSelection();
+  api('/api/topics').then(result => { topics = result.topics; }).catch(() => {});
   const results = await Promise.allSettled([api('/api/customers'), api('/api/calling-status')]);
   if (results[0].status === 'fulfilled') {
     customers = results[0].value.customers;

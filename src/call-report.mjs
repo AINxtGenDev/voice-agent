@@ -1,9 +1,9 @@
 import { closeSync, lstatSync, mkdirSync, openSync, writeSync } from 'node:fs';
 import { join } from 'node:path';
+import { TOPICS } from './conversation-policy.mjs';
 
 export const SUMMARY_MODEL = 'gpt-5.6-terra';
 const TIME_ZONE = 'Europe/Vienna';
-const TOPICS = { 'hpe-private-cloud-ai': 'HPE Private Cloud AI' };
 const OUTCOMES = { completed: 'Beendet', failed: 'Fehlgeschlagen', busy: 'Besetzt', 'no-answer': 'Nicht erreicht', canceled: 'Abgebrochen' };
 const PERMISSIONS = { granted: 'Erteilt', denied: 'Abgelehnt', pending: 'Keine Antwort' };
 

@@ -5,7 +5,7 @@ import { SessionManager, SessionError } from './session-manager.mjs';
 import { createLiveProvider } from './live-provider.mjs';
 import { CustomerStore, CustomerError } from './customers.mjs';
 import { createTelephony, TelephonyError } from './telephony.mjs';
-import { openingForTopic } from './conversation-policy.mjs';
+import { TOPICS, isSupportedTopic, openingForTopic } from './conversation-policy.mjs';
 import { knowledgeVersion } from './hpe-knowledge.mjs';
 
 const files = new Map([
@@ -55,7 +55,7 @@ export function createServer({ provider, customerStore, telephony, port = 3000, 
         if (!customerStore) throw new CustomerError('Customer storage is unavailable.', 503);
         return reply(response, 200, { customers: customerStore.list() });
       }
-      if (request.method === 'GET' && request.url === '/api/topics') return reply(response, 200, { topics: [{ id: 'hpe-private-cloud-ai', name: 'HPE Private Cloud AI', language: 'de-AT', opening: openingForTopic(), knowledgeVersion }] });
+      if (request.method === 'GET' && request.url === '/api/topics') return reply(response, 200, { topics: Object.entries(TOPICS).map(([id, name]) => ({ id, name, language: 'de-AT', opening: openingForTopic(id), knowledgeVersion })) });
       if (request.method === 'GET' && request.url === '/api/calling-status') return reply(response, 200, telephony ? {
         ...telephony.status(),
         ...(customerStore?.hasUnresolvedCalls() && !telephony.status().call ? { configured: false, reason: 'Earlier call closure requires reconciliation.' } : {}),
@@ -88,7 +88,7 @@ export function createServer({ provider, customerStore, telephony, port = 3000, 
         if (!selected) throw new CustomerError('Customer not found.', 404);
         if (!selected.contactAllowed) throw new CustomerError('Contact permission has not been recorded for this customer.', 403);
         if (!telephony) throw new CustomerError('Telephone provider is not configured. No call was placed.', 503);
-        if (body.topicId !== 'hpe-private-cloud-ai' || typeof body.requestId !== 'string' || !/^[a-f0-9-]{36}$/iu.test(body.requestId)) throw new CustomerError('A supported topic and unique request ID are required.');
+        if (!isSupportedTopic(body.topicId) || typeof body.requestId !== 'string' || !/^[a-f0-9-]{36}$/iu.test(body.requestId)) throw new CustomerError('A supported topic and unique request ID are required.');
         const prior = customerStore.callRequest(body.requestId);
         if (prior) {
           if (prior.customerId !== selected.id || prior.topicId !== body.topicId) throw new CustomerError('Request ID belongs to another conversation.', 409);
@@ -113,7 +113,7 @@ export function createServer({ provider, customerStore, telephony, port = 3000, 
         } finally { callStarting = false; }
       }
       if (request.url === '/api/session') {
-        if (typeof body?.sdp !== 'string' || !body.sdp.startsWith('v=0') || body.sdp.length < 10 || body.permission !== true || body.topicId !== 'hpe-private-cloud-ai' || Object.keys(body).some((key) => !['sdp', 'topicId', 'permission'].includes(key))) throw new SessionError('A valid SDP offer, supported topic and explicit test opt-in are required.', 400);
+        if (typeof body?.sdp !== 'string' || !body.sdp.startsWith('v=0') || body.sdp.length < 10 || body.permission !== true || !isSupportedTopic(body.topicId) || Object.keys(body).some((key) => !['sdp', 'topicId', 'permission'].includes(key))) throw new SessionError('A valid SDP offer, supported topic and explicit test opt-in are required.', 400);
         if (phoneBusy()) throw new SessionError('A telephone call is active or unresolved.');
         const result = await manager.create(body.sdp);
         if (response.destroyed) { await manager.close(result.session.id); return; }

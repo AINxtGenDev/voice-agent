@@ -37,19 +37,37 @@ for (const [question, factId, sourceId] of supportedQuestions) {
   });
 }
 test('manual directory is not represented as reviewed manual content', () => {
-  assert.equal(hpeSources.length, 7);
+  assert.equal(hpeSources.length, 9);
   assert.equal(hpeSources.find(source => source.sourceId === 'HPE-MANUALS').reviewStatus, 'directory-only');
   const result = searchHpeKnowledge('Wie installiere ich Version 2026.07.1?');
   assert.equal(result.status, 'limited');
   assert.deepEqual(result.facts, []);
   assert.equal(result.conflicts[0].id, 'administration-versions');
 });
-test('conflicting hardware is withheld until generation is known', () => {
+test('hardware answers come from QuickSpecs V11 and keep the generation conflict notice', () => {
   const result = searchHpeKnowledge('Welche GPUs und Speicher hat das Developer-System?');
-  assert.equal(result.status, 'limited');
   assert.equal(result.conflicts[0].id, 'developer-generations');
-  assert.deepEqual(result.facts, []);
-  assert.doesNotMatch(JSON.stringify(result), /22 TB|32 TB|zwei H100/);
+  const fact = result.facts.find(item => item.id === 'pcai-developer-system');
+  assert.ok(fact);
+  assert.match(fact.text, /2 RTX Pro 6000 GPUs, 22 TB/);
+  assert.equal(fact.citations[0].version, 'V11, 2026-07-06');
+  assert.doesNotMatch(JSON.stringify(result.facts), /32 TB|H100/);
+  assert.match(result.limitations.join(' '), /V11/);
+});
+
+test('QuickSpecs facts stay within their topic and cite page and version', () => {
+  const cases = [['Welche Laufwerke gibt es, QLC oder TLC?', 'hpe-alletra-mp-x10000', 'x10000-drives', 'V11, 2026-09-08'],
+    ['Wie viele Switches kann ich stapeln?', 'hpe-cx-6300', 'cx6300-vsf-stacking', 'V46, 2026-08-03'],
+    ['Welche Garantie gibt es?', 'hpe-cx-6300', 'cx6300-warranty', 'V46, 2026-08-03']];
+  for (const [question, topic, id, version] of cases) {
+    const fact = searchHpeKnowledge(question, topic).facts.find(item => item.id === id);
+    assert.ok(fact, question);
+    assert.equal(fact.citations[0].version, version);
+    assert.match(fact.citations[0].section, /^Seite \d/);
+  }
+  assert.deepEqual(searchHpeKnowledge('Wie viele GPUs hat die Medium-Konfiguration?', 'hpe-cx-6300').facts, []);
+  assert.deepEqual(searchHpeKnowledge('Welche Details gibt es?', 'hpe-alletra-mp-x10000').facts.filter(f => f.id === 'x10000-ai-data-intelligence'), []);
+  assert.equal(searchHpeKnowledge('Garantieren Sie mir 400 Gbit Durchsatz?', 'hpe-cx-6300').status, 'unsupported');
 });
 test('unsupported promises and values do not become a generic supported answer', () => {
   for (const question of ['Was kostet HPE Private Cloud AI?', 'Welchen Preis hat NVIDIA?', 'Was kostet NVIDIA?', 'Garantiert Connected DSGVO?', 'Welche Einsparung bringt RAG?', 'Was ist der Liefertermin?', 'Welches Sizing brauche ich?', 'Wo ist die Datenresidenz?']) {
