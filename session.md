@@ -4,6 +4,15 @@ Updated: 2026-09-25 (Europe/Vienna). Latest code commit: `8258a31`.
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
+## Consultant Conversation Style — 2026-09-25
+
+- The agent's German instructions now follow the user's senior-consultant prompt: challenge → requirement → solution → benefit → next step, one question at a time, 20–40-second turns, proactive two-or-three-benefit framing, interest signals, objection handling (information request, existing solution, no budget), no competitor criticism, and a summary before closing.
+- Kept unchanged: AI disclosure and identity ("erstellt von Werner", no HPE employment claim), the server-side permission gate, stop/opt-out handling, evidence-only answers, and no fixed appointment confirmation.
+- References and installation counts are **not** mentioned: no approved references exist yet. They can be added later as a checked knowledge source.
+- After consent the agent asks a topic-specific discovery question instead of a product question. The selected topic leads; the knowledge search adds another product's facts only when the question names it (Private Cloud AI, X10000/Alletra, CX 6300/Aruba).
+- Telephone voice changed from `marin` to `cedar` (intended as male; gender and gpt-live-1 support are unverified until a test call).
+- 87/87 offline tests pass. Not yet deployed to the Docker host and not yet verified on a real call.
+
 ## Docker Deployment — 2026-09-25
 
 - Reboot test on 2026-09-25: the host came back within about 40 seconds and the Docker stack restarted on its own. Login, signed-gateway rejection, telephony status, and DuckDNS update all passed afterwards.

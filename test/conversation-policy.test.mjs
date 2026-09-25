@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { openingForTopic, buildConversationInstructions, ConversationGate, classifyWithdrawal } from '../src/conversation-policy.mjs';
+import { openingForTopic, buildConversationInstructions, buildBackendInstructions, discoveryQuestion, ConversationGate, classifyWithdrawal } from '../src/conversation-policy.mjs';
 
 test('opening preserves the required German identity and permission wording', () => {
   assert.equal(openingForTopic(), 'Guten Tag! Ich bin der HPE Sprachassistent, erstellt von Werner, und ein KI-Assistent. Das Gespräch halte ich danach in einer kurzen schriftlichen Zusammenfassung fest. Darf ich mit Ihnen ein Gespräch zum Thema HPE Private Cloud AI führen?');
@@ -84,4 +84,23 @@ test('withdrawal after consent requires an explicit request or a short complete 
   const gate = new ConversationGate();
   gate.handleTranscript('Ja');
   assert.equal(gate.handleTranscript('Wir wollen das alte Projekt beenden und migrieren.').action, 'continue');
+});
+
+test('consultant instructions keep identity and evidence rules and add the sales method', () => {
+  const text = buildConversationInstructions('hpe-alletra-mp-x10000');
+  assert.match(text, /erstellt von Werner, und ein KI-Assistent/);
+  assert.match(text, /Beschäftigung oder Beauftragung durch HPE dürfen Sie nicht behaupten/);
+  assert.match(text, /Herausforderung → Anforderung → passende Lösung → Nutzen → nächster Schritt/);
+  assert.match(text, /HPE Private Cloud AI.*HPE Aruba Networking CX 6300/s);
+  assert.match(text, /Referenzen, Installationen/);
+  assert.match(text, /Konkurrenz/);
+  assert.match(text, /Hauptthema dieses Gesprächs ist HPE Alletra Storage MP X10000/);
+  assert.ok(text.includes(discoveryQuestion('hpe-alletra-mp-x10000')));
+  assert.match(buildBackendInstructions('hpe-cx-6300'), /Produktnamen/);
+});
+
+test('after consent the agent asks about the customer situation, not a product feature', () => {
+  const gate = new ConversationGate('hpe-cx-6300');
+  assert.equal(gate.handleTranscript('Ja').message, `Vielen Dank. ${discoveryQuestion('hpe-cx-6300')}`);
+  assert.match(discoveryQuestion('hpe-cx-6300'), /derzeit/);
 });

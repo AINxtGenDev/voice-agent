@@ -248,7 +248,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
       try {
         if (call.state === 'closing' || call.state === 'unconfirmed') return abort(call);
         call.liveState = 'starting';
-        send(live, { type: 'session.start', session: { model: 'gpt-live-1', store: false, instructions: buildConversationInstructions(call.topicId), audio: { format: { type: 'audio/pcmu', rate: 8000 }, output: { voice: 'marin' } }, delegation: { type: 'responses', responses: { model: BACKEND_MODEL, instructions: buildBackendInstructions(call.topicId), reasoning: { effort: 'medium' }, tools: [KNOWLEDGE_TOOL], tool_choice: 'auto', parallel_tool_calls: false } } } });
+        send(live, { type: 'session.start', session: { model: 'gpt-live-1', store: false, instructions: buildConversationInstructions(call.topicId), audio: { format: { type: 'audio/pcmu', rate: 8000 }, output: { voice: 'cedar' } }, delegation: { type: 'responses', responses: { model: BACKEND_MODEL, instructions: buildBackendInstructions(call.topicId), reasoning: { effort: 'medium' }, tools: [KNOWLEDGE_TOOL], tool_choice: 'auto', parallel_tool_calls: false } } } });
       } catch { abort(call); }
     });
     live.on('message', (raw) => {

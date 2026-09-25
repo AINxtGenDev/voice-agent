@@ -91,3 +91,13 @@ test('callers cannot corrupt evidence for subsequent sessions', () => {
   assert.notEqual(searchHpeKnowledge('Was ist HPE Private Cloud AI?').facts[0].text, 'fabricated');
   assert.match(searchHpeKnowledge('Was ist HPE Private Cloud AI?').facts[0].citations[0].url, /www.hpe.com/);
 });
+
+test('other topics contribute facts only when the question names that product', () => {
+  const named = searchHpeKnowledge('Wie viele Switches kann ich beim Aruba CX 6300 stapeln?', 'hpe-private-cloud-ai');
+  assert.ok(named.facts.some(fact => fact.id === 'cx6300-vsf-stacking'));
+  assert.ok(named.facts.every(fact => ['hpe-private-cloud-ai', 'hpe-cx-6300'].includes(fact.topic)));
+  const generic = searchHpeKnowledge('Welche Garantie gibt es?', 'hpe-private-cloud-ai');
+  assert.ok(generic.facts.every(fact => fact.topic === 'hpe-private-cloud-ai'));
+  const own = searchHpeKnowledge('Welche Laufwerke gibt es, QLC oder TLC?', 'hpe-alletra-mp-x10000');
+  assert.ok(own.facts.every(fact => fact.topic === 'hpe-alletra-mp-x10000'));
+});

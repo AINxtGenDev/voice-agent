@@ -1,4 +1,4 @@
-import { ConversationGate, classifyWithdrawal, openingForTopic, topicName } from './conversation-policy.mjs';
+import { ConversationGate, classifyWithdrawal, discoveryQuestion, openingForTopic, topicName } from './conversation-policy.mjs';
 import { searchHpeKnowledge } from './hpe-knowledge.mjs';
 
 // Live transcript deltas are fragments, not final turns. Only client delegation
@@ -57,7 +57,7 @@ export function createLiveConversation({ send, close, onSuppression = () => {}, 
       if (started || disposed) return;
       started = true;
       append('session.instructions.append', consentGranted
-        ? `Die ausdrückliche Gesprächserlaubnis wurde vor Verbindungsaufbau geprüft. Bedanke dich freundlich und frage: Was interessiert Sie an ${topicName(topicId)} besonders? Produktdetails nur nach belegter Recherche. Delegiere jede Fachfrage.`
+        ? `Die ausdrückliche Gesprächserlaubnis wurde vor Verbindungsaufbau geprüft. Bedanke dich freundlich und frage: ${discoveryQuestion(topicId)} Produktdetails nur nach belegter Recherche. Delegiere jede Fachfrage.`
         : `Sprich zuerst exakt: ${openingForTopic(topicId)} Warte anschließend auf ausdrückliche Zustimmung. Delegiere die Antwort zur Prüfung. Keine Produktdetails vor serverseitiger Freigabe.`);
       waitForPermission();
     },

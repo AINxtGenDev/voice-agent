@@ -22,7 +22,12 @@ const facts = [
   { id: 'responsibilities', terms: ['verantwortung', 'zuständig', 'datensicherung', 'backup', 'sicherheit', 'betrieb', 'betreibt'], text: 'Die Servicebeschreibung verteilt Aufgaben zwischen Kunde und HPE. Zu den Kundenaufgaben gehören Datensicherung und Sicherheitsmaßnahmen; eine vollständige Betriebsübernahme durch HPE ist nicht pauschal zugesagt.', citations: [citation('HPE-SERVICE', 'Abschnitt 7')] },
   { id: 'scope', terms: ['lizenz', 'support', 'vertrag', 'nutzungsdauer', 'leistungsumfang', 'änderungen'], text: 'Nutzungsdauer, Softwarelizenzen, Support und zulässige Änderungen sind vertrags- und konfigurationsabhängig. Eine individuelle Zusage erfordert die Prüfung des Angebots und Vertrags.', citations: [citation('HPE-SERVICE', 'Abschnitte 1, 4 und 5')] },
   ...quickspecsFacts.map(({ sourceId, section, quote, ...fact }) => ({ ...fact, citations: [citation(sourceId, section)] })),
-];
+].map(fact => ({ topic: 'hpe-private-cloud-ai', ...fact }));
+const productNames = Object.freeze({
+  'hpe-private-cloud-ai': /private cloud ai|pcai/u,
+  'hpe-alletra-mp-x10000': /x ?10000|x ?10\.000|x zehntausend|alletra/u,
+  'hpe-cx-6300': /cx ?6300|cx ?6\.300|aruba/u,
+});
 const globalLimit = 'Kuratierte geprüfte Auszüge, kein vollständig eingelesener HPE-Dokumentbestand. Keine kundenspezifische Eignungs- oder Leistungszusage.';
 
 /** Returns bounded evidence, never generated product claims or operational instructions. */
@@ -51,8 +56,9 @@ export function searchHpeKnowledge(query, topicId = 'hpe-private-cloud-ai') {
     result.limitations.push('Die Handbücher, Release Notes und Kompatibilitätsmatrizen der aktuellen Version sind noch nicht geprüft. Keine konkreten Betriebsanweisungen freigegeben.');
     return result;
   }
-  const topicFacts = facts.filter(fact => (fact.topic ?? 'hpe-private-cloud-ai') === topicId);
-  let matching = topicFacts.filter(fact => includes(fact.terms));
+  // The call's topic leads; another product contributes only when the question names it.
+  const topics = [topicId, ...Object.keys(productNames).filter(other => other !== topicId && productNames[other].test(normalized))];
+  let matching = topics.flatMap(topic => facts.filter(fact => fact.topic === topic && includes(fact.terms)));
   // "Was ist HPE Private Cloud AI?" always starts with the overview.
   if (pcai && /^(?:was ist\s+)?hpe private cloud ai[?.!\s]*$/.test(normalized.trim())) matching = [facts[0], ...matching.filter(fact => fact !== facts[0])];
   result.facts = matching.slice(0, 3).map(({ terms, ...fact }) => ({ ...fact, citations: fact.citations.map(item => ({ ...item })) }));
