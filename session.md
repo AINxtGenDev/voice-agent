@@ -9,7 +9,7 @@ This is a public project status record. Keep credentials, customer information, 
 - The agent now runs in Docker on a private home server behind Caddy at `https://voicehpe.duckdns.org:10556` (commit `3a1cbd7`). Let's Encrypt certificate obtained via DuckDNS DNS-01; a DuckDNS updater refreshes the address every 5 minutes.
 - The operator UI requires a password (Caddy basic auth). Only `/twilio/*` is open, and unsigned requests are rejected (403). The app container has no host port. Credentials, contact database and reports are mounted from private host directories outside Git.
 - Code change: `PUBLIC_UI_ORIGIN` (one accepted HTTPS origin) and `LISTEN_HOST`. 84/84 offline tests pass.
-- Verified from the server: 401 without/with wrong password, 200 with password, telephony `configured: true`, signed-gateway rejection, valid certificate. **Not yet verified:** reachability from outside the home network, and whether Twilio accepts the non-443 port for callbacks and the media WebSocket (its docs only name 443). A bounded test call settles both; it needs explicit authorization.
+- Verified from the server: 401 without/with wrong password, 200 with password, telephony `configured: true`, signed-gateway rejection, valid certificate. Reachability from outside the home network was confirmed by the user on a phone over mobile data (login and UI work). **Not yet verified:** whether Twilio accepts the non-443 port for callbacks and the media WebSocket (its docs only name 443). A bounded test call settles both; it needs explicit authorization.
 - GitHub Pages stays online until the Docker deployment has passed a real call; disabling it is a separate step.
 
 ## Resume Here — 2026-09-25
