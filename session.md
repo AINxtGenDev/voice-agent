@@ -11,7 +11,7 @@ This is a public project status record. Keep credentials, customer information, 
 - References and installation counts are **not** mentioned: no approved references exist yet. They can be added later as a checked knowledge source.
 - After consent the agent asks a topic-specific discovery question instead of a product question. The selected topic leads; the knowledge search adds another product's facts only when the question names it (Private Cloud AI, X10000/Alletra, CX 6300/Aruba).
 - Telephone voice changed from `marin` to `cedar` (intended as male; gender and gpt-live-1 support are unverified until a test call).
-- 87/87 offline tests pass. Not yet deployed to the Docker host and not yet verified on a real call.
+- 87/87 offline tests pass. Deployed to the Docker host on 2026-09-25 (`0ca4cb0`; login, signed-gateway rejection and telephony status re-checked). Not yet verified on a real call.
 
 ## Docker Deployment — 2026-09-25
 
