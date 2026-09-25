@@ -10,9 +10,9 @@ const supportedQuestions = [
   ['Welche Architektur wird beschrieben?', 'overview', 'HPE-QS'],
   ['Was steht über KI-Agenten?', 'agents', 'HPE-AT'],
   ['Wie werden Unternehmensdaten positioniert?', 'agents', 'HPE-EU'],
-  ['Welche Software wird genannt?', 'software', 'HPE-DEV'],
-  ['Ist NIM erwähnt?', 'software', 'HPE-DEV'],
-  ['Gibt es Open-Source-Werkzeuge?', 'software', 'HPE-DEV'],
+  ['Welche Software wird genannt?', 'pcai-software-nvaie', 'HPE-QS'],
+  ['Ist NIM erwähnt?', 'pcai-software-nvaie', 'HPE-QS'],
+  ['Gibt es Open-Source-Werkzeuge?', 'pcai-software-nvaie', 'HPE-QS'],
   ['Welche Betriebsvarianten gibt es?', 'operating-modes', 'HPE-SERVICE'],
   ['Was bedeutet Air-gapped?', 'operating-modes', 'HPE-SERVICE'],
   ['Ist Connected vorgesehen?', 'operating-modes', 'HPE-SERVICE'],
@@ -37,22 +37,24 @@ for (const [question, factId, sourceId] of supportedQuestions) {
   });
 }
 test('manual directory is not represented as reviewed manual content', () => {
-  assert.equal(hpeSources.length, 9);
+  assert.equal(hpeSources.length, 7);
+  assert.ok(!hpeSources.some(source => ['HPE-DEV', 'HPE-ADMIN-15'].includes(source.sourceId)));
   assert.equal(hpeSources.find(source => source.sourceId === 'HPE-MANUALS').reviewStatus, 'directory-only');
   const result = searchHpeKnowledge('Wie installiere ich Version 2026.07.1?');
   assert.equal(result.status, 'limited');
   assert.deepEqual(result.facts, []);
-  assert.equal(result.conflicts[0].id, 'administration-versions');
+  assert.deepEqual(result.conflicts, []);
+  assert.match(result.limitations.join(' '), /aktuellen Version/);
 });
-test('hardware answers come from QuickSpecs V11 and keep the generation conflict notice', () => {
+test('hardware answers come only from the newest QuickSpecs, without older-source notices', () => {
   const result = searchHpeKnowledge('Welche GPUs und Speicher hat das Developer-System?');
-  assert.equal(result.conflicts[0].id, 'developer-generations');
+  assert.deepEqual(result.conflicts, []);
   const fact = result.facts.find(item => item.id === 'pcai-developer-system');
   assert.ok(fact);
   assert.match(fact.text, /2 RTX Pro 6000 GPUs, 22 TB/);
   assert.equal(fact.citations[0].version, 'V11, 2026-07-06');
   assert.doesNotMatch(JSON.stringify(result.facts), /32 TB|H100/);
-  assert.match(result.limitations.join(' '), /V11/);
+  assert.doesNotMatch(JSON.stringify(result), /Developer Portal|1\.5/);
 });
 
 test('QuickSpecs facts stay within their topic and cite page and version', () => {
@@ -82,13 +84,10 @@ test('unrelated topics, invalid inputs and rule-changing instructions return no 
     assert.deepEqual(searchHpeKnowledge(question).facts, []);
   }
 });
-test('callers cannot corrupt evidence or conflict metadata for subsequent sessions', () => {
+test('callers cannot corrupt evidence for subsequent sessions', () => {
   const result = searchHpeKnowledge('Was ist HPE Private Cloud AI?');
   result.facts[0].citations[0].url = 'https://invalid.example';
   result.facts[0].text = 'fabricated';
-  const conflict = searchHpeKnowledge('GPU');
-  conflict.conflicts[0].sourceIds.push('fabricated');
   assert.notEqual(searchHpeKnowledge('Was ist HPE Private Cloud AI?').facts[0].text, 'fabricated');
   assert.match(searchHpeKnowledge('Was ist HPE Private Cloud AI?').facts[0].citations[0].url, /www.hpe.com/);
-  assert.equal(searchHpeKnowledge('GPU').conflicts[0].sourceIds.length, 2);
 });

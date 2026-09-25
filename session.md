@@ -20,6 +20,8 @@ Latest code commit: see `git log` (QuickSpecs knowledge, 2026-09-25). No work in
 
 **`hpe-quickspecs` skill repaired (2026-09-25, outside this repo):** its library search was an unimplemented placeholder (it scraped navigation cards, ignoring the query), and its PDF step used a viewer URL that returns HTML. The fix calls the JSON service behind the HPE Resource Library, ranks results by title match, returns direct PDF links, and rejects non-PDF downloads. Verified: correct document ranked first for Private Cloud AI, Alletra MP X10000, CX 6300 and DL380a Gen12; search → PDF → HTML worked end to end. The fixed skill still needs to be uploaded to claude.ai by the user; the synced local copy is unchanged.
 
+**Newest versions only (2026-09-25, user request):** the voice agent now uses only the newest version of each document. The Developer Portal and the version 1.5 Administration Guide were removed, together with their conflict notices; the service description V3 was confirmed current. The repaired `hpe-quickspecs` skill now enforces the newest version too: it strips `ver=` from links, reads the version from the PDF's own history, shows it in the summary, and stops if it does not match the search result's date. Verified on real documents. 83/83 offline tests passed.
+
 Remaining open items:
 
 - Make the agent reliably ask for, spell back, and confirm the e-mail address; check how the call ended.

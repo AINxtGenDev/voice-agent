@@ -133,7 +133,7 @@ export function createLiveConversation({ send, close, onSuppression = () => {}, 
       }
       append('session.instructions.append', evidence.status === 'unsupported' || !evidence.facts.length
         ? 'Für diese Frage liegt kein belastbarer freigegebener Beleg vor. Sage das freundlich auf Deutsch. Erfinde keine Antwort. Frage bei Bedarf nach Version oder konkretem Anwendungsfall.'
-        : `Antworte freundlich und knapp nur anhand der gerade gelieferten Belege. Grenzen: ${evidence.limitations.slice(0, 2).join(' ').slice(0, 500)} Bei Versionskonflikten nachfragen. Keine Preise oder Garantien ergänzen.`, id);
+        : `Antworte freundlich und knapp nur anhand der gerade gelieferten Belege. Grenzen: ${evidence.limitations.slice(0, 2).join(' ').slice(0, 500)} Keine Preise oder Garantien ergänzen.`, id);
     },
     dispose() { disposed = true; clearTimeout(permissionTimer); clearTimeout(turnTimer); turn = ''; transcript = ''; seen.clear(); delegations.clear(); },
   };

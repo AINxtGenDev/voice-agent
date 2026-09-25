@@ -23,7 +23,9 @@ Geprüft am 24. September 2026. Dies ist ein kuratierter Ausgangspunkt, **kein v
 - **Verantwortung:** Die Servicebeschreibung enthält Aufgaben des Kunden, etwa Datensicherung und Sicherheitsmaßnahmen, sowie Aufgaben von HPE. Deshalb nicht pauschal behaupten, HPE übernehme den gesamten Betrieb. Beleg: HPE-SERVICE V3, Abschnitt 7.
 - **Leistungsumfang:** Nutzungsdauer, Softwarelizenzen, Support und zulässige Änderungen sind vertrags- und konfigurationsabhängig. Keine verbindliche individuelle Zusage ohne Prüfung. Beleg: HPE-SERVICE V3, Abschnitte 1, 4 und 5.
 
-## Erkannte Versionskonflikte und Grenzen
+> **Stand 2026-09-25 – nur aktuellste Versionen:** Auf Wunsch des Nutzers verwendet der Sprachassistent ausschließlich die jeweils neueste Dokumentversion. HPE-DEV (Developer Portal) und HPE-ADMIN-15 (Administration Guide 1.5) wurden aus dem Wissensbestand entfernt; die unten beschriebenen Konflikte werden im Gespräch nicht mehr erwähnt. Hardwareangaben stammen nur aus den QuickSpecs V11, Softwareangaben aus den QuickSpecs. Die Servicebeschreibung V3 wurde am 2026-09-25 als aktuelle Fassung bestätigt.
+
+## Erkannte Versionskonflikte und Grenzen (historisch)
 
 1. Das Developer Portal beschreibt ein Developer-System mit zwei H100 NVL GPUs und 32 TB Speicher. Die QuickSpecs V11 nennen in ihrer Familientabelle für das Developer-System zwei RTX Pro 6000 GPUs und 22 TB internen Speicher. Diese Angaben dürfen nicht zu einer gemeinsamen Konfiguration zusammengeführt werden. Für eine konkrete Antwort Generation und Angebot klären; für die referenzierte V11-Konfiguration die V11-Tabelle verwenden.
 2. Der ausdrücklich angegebene Administration-Link gehört zu Version 1.5. Im aktuellen Handbuchverzeichnis sind auch Dokumente zu 2026.07.1 sichtbar. Betriebsanweisungen müssen zur installierten Version passen; der ältere Link ist kein pauschaler Beleg für den aktuellen Stand.
