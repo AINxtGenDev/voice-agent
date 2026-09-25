@@ -1,8 +1,25 @@
 # Session Status
 
-Updated: 2026-09-25 (Europe/Vienna). Latest code commit: `8258a31`.
+Updated: 2026-09-25 (Europe/Vienna). Latest code commit: `0ca4cb0`.
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
+
+## Resume Here — 2026-09-25 (end of session)
+
+Latest code commit: `0ca4cb0`, deployed. No work in progress; no call running. Offline suite: 87/87 passing. The user's own uncommitted files (`NEXT_STEPS.md`, logo files, `TWILIO_SETUP.md`, `00-prompt.txt`) are intentionally not committed.
+
+**Where it runs:** Docker on a private home server behind Caddy at `https://voicehpe.duckdns.org:10556` (password-protected UI; only signature-checked `/twilio/*` is public). Reboot-tested. The temporary tunnel and GitHub Pages are no longer used. Update with `git pull && docker compose up -d --build` in `deploy/`. Private operational details (host access, secret locations) are kept outside the repository.
+
+**Current capabilities:**
+
+- Telephone calls via Twilio IE1, 2-second pause after pickup, spoken AI disclosure and permission gate, then GPT-Live (voice `cedar`) with Responses delegation to `gpt-5.6-terra`. Calls last at most 5 minutes by default.
+- Senior-consultant conversation style (discovery-led, one question at a time, objection handling, cross-solution links). The selected topic leads; other products join only when named. No references or installation claims until approved ones exist.
+- Goal: a follow-up meeting with HPE experts (preferred times, online/on-site, interest, e-mail spelled back). A private Markdown report is written after each call.
+- Three topics with 41 reviewed, page-cited QuickSpecs facts plus curated product-page and service-description facts.
+
+**Not yet verified (next real call settles all of it):** whether Twilio accepts port 10556 for callbacks and the Media Streams WebSocket (docs name only 443); whether `gpt-live-1` accepts `cedar` and how it sounds; the new conversation style and e-mail capture in practice.
+
+**Outside this repository:** the repaired `hpe-quickspecs` skill still has to be uploaded to claude.ai.
 
 ## Consultant Conversation Style — 2026-09-25
 
@@ -24,24 +41,6 @@ This is a public project status record. Keep credentials, customer information, 
 - Code change: `PUBLIC_UI_ORIGIN` (one accepted HTTPS origin) and `LISTEN_HOST`. 84/84 offline tests pass.
 - Verified from the server: 401 without/with wrong password, 200 with password, telephony `configured: true`, signed-gateway rejection, valid certificate. Reachability from outside the home network was confirmed by the user on a phone over mobile data (login and UI work). **Not yet verified:** whether Twilio accepts the non-443 port for callbacks and the media WebSocket (its docs only name 443). A bounded test call settles both; it needs explicit authorization.
 - GitHub Pages was disabled at the user's request on 2026-09-25 (API and public URL both return 404). Previous source: `main` `/docs`. `docs/` remains in Git; removing it is a separate decision.
-
-## Resume Here — 2026-09-25
-
-Latest code commit: `8258a31`. No work in progress. Nothing is running (no tunnel, no local server, no browser session). Offline suite: 83/83 passing. The user's own uncommitted edits (`NEXT_STEPS.md`, `README.md`, logo files, `TELEPHONY_COSTS.md`, `TWILIO_SETUP.md`, `00-prompt.txt`) are intentionally not committed.
-
-**Current capabilities (local prototype):**
-
-- Telephone calls via Twilio IE1 (regional IE1 Auth Token), 2-second pause after pickup, spoken permission gate, then GPT-Live with Responses delegation to `gpt-5.6-terra` (reasoning medium). Calls are limited to 5 minutes by default (`MAX_CALL_SECONDS`), with a wrap-up instruction one minute before the end.
-- Goal of each call: a follow-up meeting with HPE experts (preferred times, online/on-site, interest, e-mail spelled back). After the call, `gpt-5.6-terra` writes a private Markdown report in `reports/` with date, time, carrier duration and meeting details.
-- Three topics with 41 reviewed, page-cited QuickSpecs facts plus curated product-page and service-description facts: HPE Private Cloud AI (QuickSpecs V11), Alletra Storage MP X10000 (V11), Aruba Networking CX 6300 (V46). Knowledge is topic-scoped and uses only the newest document versions.
-- Hang-ups after consent happen only on explicit requests or short complete utterances.
-- The start button requires a topic and a person. Contacts (name, number, product, permission) are kept in the private local SQLite database; one test contact has documented permission.
-
-**Verified on a real call (2026-09-24, before the QuickSpecs, pause and Terra-summary changes):** Twilio IE1 call, spoken consent, GPT-Live session with clean closure on both legs, automatic report with carrier duration. No e-mail address was captured on that call.
-
-**Outside this repository:** the `hpe-quickspecs` skill was repaired (real library search, direct PDF links, newest-version enforcement). The fixed package is in the user's Downloads folder and still has to be uploaded to claude.ai; the synced local copy is unchanged.
-
-**Open questions for the user:** how the first call ended (hang-up, agent goodbye, or cut-off), audio quality, answer quality, and whether the agent asked for the e-mail address.
 
 ## Call Reports, Meeting Goal, and Terra Delegation — 2026-09-24
 
@@ -173,11 +172,10 @@ Latest code commit: `8258a31`. No work in progress. Nothing is running (no tunne
 
 ## Next Steps
 
-1. Get the user's feedback on the first call (see open questions above) and adjust the meeting-request instructions, especially e-mail capture.
-2. With explicit authorization, run a bounded test call to the designated test contact on one of the new topics. Verify the 2-second pause, QuickSpecs answers, e-mail spelled back, and the Terra-written report.
+1. With explicit authorization, run a bounded test call through the Docker deployment to the designated test contact (start it from the UI). Verify port 10556 with Twilio, the `cedar` voice, the consultant style, e-mail spelled back, and the report. If Twilio rejects the port, forward external 443 instead.
+2. Provide approved references (customer or industry, challenge, verified outcome, naming permission) if the agent should mention implementation experience.
 3. Upload the repaired `hpe-quickspecs` skill to claude.ai.
-4. With authorization, run a bounded test call through the Docker deployment (replaces the temporary tunnel); if Twilio rejects port 10556, forward external 443 instead.
-5. Keep this public status record current; retain private troubleshooting details separately. A future repository visibility change requires a separate decision and has not been performed.
+4. Keep this public status record current; retain private troubleshooting details separately.
 
 ## Sources
 
