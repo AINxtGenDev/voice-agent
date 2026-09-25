@@ -6,6 +6,8 @@ This is a public project status record. Keep credentials, customer information, 
 
 ## Docker Deployment — 2026-09-25
 
+- README updated for the Docker deployment and Pages shutdown; the user's earlier uncommitted README edits were included at their request.
+
 - The agent now runs in Docker on a private home server behind Caddy at `https://voicehpe.duckdns.org:10556` (commit `3a1cbd7`). Let's Encrypt certificate obtained via DuckDNS DNS-01; a DuckDNS updater refreshes the address every 5 minutes.
 - The operator UI requires a password (Caddy basic auth). Only `/twilio/*` is open, and unsigned requests are rejected (403). The app container has no host port. Credentials, contact database and reports are mounted from private host directories outside Git.
 - Code change: `PUBLIC_UI_ORIGIN` (one accepted HTTPS origin) and `LISTEN_HOST`. 84/84 offline tests pass.
