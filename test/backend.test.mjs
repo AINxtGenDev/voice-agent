@@ -143,6 +143,24 @@ test('HTTP rejects foreign Host/Origin, missing Origin, and browser configuratio
   } finally { await server.shutdown(); }
 });
 
+test('HTTP accepts only the configured public HTTPS origin behind the proxy', async () => {
+  const server = createServer({ provider: fakeProvider(), publicOrigin: 'https://voice.example:10556' });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const request = (path, { method = 'GET', headers = {}, body } = {}) => new Promise((resolve, reject) => {
+    const req = http.request({ hostname: '127.0.0.1', port: server.address().port, path, method, headers }, (res) => { res.resume(); res.on('end', () => resolve(res.statusCode)); });
+    req.on('error', reject);
+    req.end(body);
+  });
+  try {
+    assert.equal(await request('/api/status', { headers: { Host: 'voice.example:10556' } }), 200);
+    assert.equal(await request('/api/status', { headers: { Host: 'voice.example' } }), 403);
+    const post = (headers) => request('/api/session', { method: 'POST', headers: { Host: 'voice.example:10556', 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ sdp: 'v=0\r\no=test', model: 'arbitrary' }) });
+    assert.equal(await post({ Origin: 'http://voice.example:10556' }), 403);
+    assert.equal(await post({ Origin: 'https://voice.example:10556' }), 400);
+    assert.equal(await request('/api/status', { headers: { Host: 'localhost:3000' } }), 200);
+  } finally { await server.shutdown(); }
+});
+
 
 test('malformed sideband events terminate control and fail closed without crashing', async () => {
   for (const payload of ['null', '{invalid', '12', 'true', '[]', '{}', '{"type":null}']) {

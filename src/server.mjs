@@ -39,18 +39,20 @@ async function readJson(request) {
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw new SessionError('Invalid JSON.', 400); }
 }
 
-export function createServer({ provider, customerStore, telephony, port = 3000, ...managerOptions } = {}) {
+export function createServer({ provider, customerStore, telephony, port = 3000, publicOrigin, ...managerOptions } = {}) {
   const manager = new SessionManager(provider, managerOptions);
   let callStarting = false;
   const phoneBusy = () => callStarting || (telephony?.status().call && !telephony.status().call.finalized) || customerStore?.hasUnresolvedCalls();
-  const hosts = new Set([`localhost:${port}`, `127.0.0.1:${port}`]);
+  // Host header -> the only Origin accepted for it. A reverse proxy adds one HTTPS origin.
+  const origins = new Map([`localhost:${port}`, `127.0.0.1:${port}`].map((host) => [host, `http://${host}`]));
+  if (publicOrigin) { const url = new URL(publicOrigin); origins.set(url.host, url.origin); }
   const server = http.createServer({ requestTimeout: 10_000, headersTimeout: 10_000 }, async (request, response) => {
     try {
       const host = request.headers.host;
-      if (!hosts.has(host)) return reply(response, 403, { error: 'Unexpected request host.' });
+      if (!origins.has(host)) return reply(response, 403, { error: 'Unexpected request host.' });
       const origin = request.headers.origin;
       const documentNavigation = request.method === 'GET' && request.url === '/' && request.headers['sec-fetch-mode'] === 'navigate' && request.headers['sec-fetch-dest'] === 'document';
-      if ((origin && origin !== `http://${host}`) || (!documentNavigation && request.headers['sec-fetch-site'] && !['same-origin', 'none'].includes(request.headers['sec-fetch-site']))) return reply(response, 403, { error: 'Unexpected request origin.' });
+      if ((origin && origin !== origins.get(host)) || (!documentNavigation && request.headers['sec-fetch-site'] && !['same-origin', 'none'].includes(request.headers['sec-fetch-site']))) return reply(response, 403, { error: 'Unexpected request origin.' });
       if (request.method === 'GET' && request.url === '/api/customers') {
         if (!customerStore) throw new CustomerError('Customer storage is unavailable.', 503);
         return reply(response, 200, { customers: customerStore.list() });
@@ -66,7 +68,7 @@ export function createServer({ provider, customerStore, telephony, port = 3000, 
         return reply(response, 200, await readFile(new URL(`../public/${file}`, import.meta.url)), type);
       }
       if (request.method !== 'POST' || !['/api/session', '/api/heartbeat', '/api/close', '/api/customers', '/api/customers/delete', '/api/calls', '/api/calls/stop'].includes(request.url)) return reply(response, 404, { error: 'Not found.' });
-      if (origin !== `http://${host}`) return reply(response, 403, { error: 'Unexpected request origin.' });
+      if (origin !== origins.get(host)) return reply(response, 403, { error: 'Unexpected request origin.' });
       const body = await readJson(request);
       if (request.url === '/api/calls/stop') {
         if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length) throw new CustomerError('No stop parameters are accepted.');
@@ -159,12 +161,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         onState: (state) => customerStore.recordCall(state), onSuppression: (id) => customerStore.suppress(id), onFinished });
       await new Promise((resolve, reject) => {
         telephony.gateway.once('error', reject);
-        telephony.gateway.listen(3001, '127.0.0.1', resolve);
+        telephony.gateway.listen(3001, process.env.LISTEN_HOST || '127.0.0.1', resolve);
       });
     }
-    const server = createServer({ provider, customerStore, telephony, maxDurationSeconds });
+    const server = createServer({ provider, customerStore, telephony, maxDurationSeconds, publicOrigin: process.env.PUBLIC_UI_ORIGIN });
     server.on('error', () => { customerStore.close(); console.error('Local server failed to start.'); process.exitCode = 1; });
-    server.listen(3000, '127.0.0.1', () => console.log('Voice test available at http://127.0.0.1:3000'));
+    server.listen(3000, process.env.LISTEN_HOST || '127.0.0.1', () => console.log('Voice test available at http://127.0.0.1:3000'));
     let stopping = false;
     const shutdown = async () => {
       if (stopping) return;

@@ -1,0 +1,37 @@
+# voicehpe.duckdns.org — HTTPS via DuckDNS DNS-01 ACME
+# Env vars: DUCKDNS_DOMAIN, DUCKDNS_TOKEN, ACME_EMAIL, ACME_CA, UI_USER, UI_PASSWORD_HASH
+{
+	acme_ca {$ACME_CA}
+	email   {$ACME_EMAIL}
+}
+
+{$DUCKDNS_DOMAIN}.duckdns.org {
+	tls {
+		dns duckdns {$DUCKDNS_TOKEN}
+	}
+
+	log {
+		output stderr
+		level WARN
+	}
+
+	header {
+		Strict-Transport-Security "max-age=63072000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	# Twilio callbacks and the media WebSocket: open, but every request is signature-checked by the app.
+	handle /twilio/* {
+		reverse_proxy app:3001
+	}
+
+	# Operator UI can start paid calls: password required.
+	handle {
+		basic_auth {
+			{$UI_USER} {$UI_PASSWORD_HASH}
+		}
+		reverse_proxy app:3000
+	}
+}

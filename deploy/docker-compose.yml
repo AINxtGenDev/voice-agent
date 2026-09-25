@@ -1,0 +1,54 @@
+# voicehpe.duckdns.org — voice agent behind Caddy (DuckDNS DNS-01 ACME).
+# Run from this directory: docker compose up -d --build
+# Private files live outside the checkout (see .env.example); nothing here holds secrets.
+services:
+  app:
+    build: ..
+    image: voicehpe-app:local
+    environment:
+      OPENAI_API_KEY_FILE: /run/voicehpe/openai
+      OPENAI_API_KEY_NAME: voice
+      ENABLE_TELEPHONY: ${ENABLE_TELEPHONY:-true}
+      TWILIO_CREDENTIAL_FILE: /run/voicehpe/twilio
+      TWILIO_PUBLIC_BASE_URL: https://${DUCKDNS_DOMAIN}.duckdns.org:${HTTPS_PORT}
+      PUBLIC_UI_ORIGIN: https://${DUCKDNS_DOMAIN}.duckdns.org:${HTTPS_PORT}
+      MAX_CALL_SECONDS: ${MAX_CALL_SECONDS:-300}
+    volumes:
+      - ${SECRETS_DIR}/openai:/run/voicehpe/openai:ro
+      - ${SECRETS_DIR}/twilio:/run/voicehpe/twilio:ro
+      - ${DATA_DIR}:/app/.private
+      - ${REPORTS_DIR}:/app/reports
+    # Not published on the host: reachable only through Caddy on the compose network.
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  caddy:
+    image: ghcr.io/ainxtgendev/stecher-tennis-caddy:latest
+    ports:
+      - "${HTTPS_PORT}:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    env_file: .env
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    depends_on:
+      - app
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  caddy_data:
