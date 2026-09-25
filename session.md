@@ -1,34 +1,26 @@
 # Session Status
 
-Updated: 2026-09-24 (Europe/Vienna). Latest code commit: `55eb6a1`.
+Updated: 2026-09-25 (Europe/Vienna). Latest code commit: `8258a31`.
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
-## Resume Here — 2026-09-24
+## Resume Here — 2026-09-25
 
-Latest code commit: see `git log` (QuickSpecs knowledge, 2026-09-25). No work in progress; no tunnel or server is running.
+Latest code commit: `8258a31`. No work in progress. Nothing is running (no tunnel, no local server, no browser session). Offline suite: 83/83 passing. The user's own uncommitted edits (`NEXT_STEPS.md`, `README.md`, logo files, `TELEPHONY_COSTS.md`, `TWILIO_SETUP.md`, `00-prompt.txt`) are intentionally not committed.
 
-**First real telephone call succeeded** (user-authorized bounded test to the operator's own number, 3-minute limit, 18:25 Europe/Vienna):
+**Current capabilities (local prototype):**
 
-- Twilio IE1 accepted the call using the regional IE1 Auth Token; signed status and permission callbacks were accepted through a temporary checksum-verified `cloudflared` quick tunnel exposing only the gateway (public probes: 404 elsewhere, 403 unsigned).
-- The spoken consent "Ja" was recognized by the carrier; GPT-Live started with Terra delegation and ran until a clean, confirmed closure on both legs (106 s Live usage; Twilio duration 2 min 10 s).
-- The Markdown report was written automatically with date, time, carrier duration, meeting wanted (yes), preferred times, online format, and main interest. **No e-mail address was captured**, so the invitation step is not yet complete.
-- Not yet determined: who ended the call (customer hang-up, withdrawal detection, or the agent), audio quality, and whether Terra's knowledge-tool answers were correct. The server does not log dialogue content by design.
-- Earlier attempt at 18:11 failed before dialing (US1 token used against IE1); resolved by adding the IE1 token.
+- Telephone calls via Twilio IE1 (regional IE1 Auth Token), 2-second pause after pickup, spoken permission gate, then GPT-Live with Responses delegation to `gpt-5.6-terra` (reasoning medium). Calls are limited to 5 minutes by default (`MAX_CALL_SECONDS`), with a wrap-up instruction one minute before the end.
+- Goal of each call: a follow-up meeting with HPE experts (preferred times, online/on-site, interest, e-mail spelled back). After the call, `gpt-5.6-terra` writes a private Markdown report in `reports/` with date, time, carrier duration and meeting details.
+- Three topics with 41 reviewed, page-cited QuickSpecs facts plus curated product-page and service-description facts: HPE Private Cloud AI (QuickSpecs V11), Alletra Storage MP X10000 (V11), Aruba Networking CX 6300 (V46). Knowledge is topic-scoped and uses only the newest document versions.
+- Hang-ups after consent happen only on explicit requests or short complete utterances.
+- The start button requires a topic and a person. Contacts (name, number, product, permission) are kept in the private local SQLite database; one test contact has documented permission.
 
-**QuickSpecs knowledge (2026-09-25):** the agent now covers three topics (Private Cloud AI, Alletra MP X10000, CX 6300) with 41 reviewed, page-cited QuickSpecs facts; search is topic-scoped. PDFs came through the browser; the `hpe-quickspecs` skill's parser extracted them, but its library search is broken (returns only navigation links). 83/83 offline tests passed. Not yet used on a real call.
+**Verified on a real call (2026-09-24, before the QuickSpecs, pause and Terra-summary changes):** Twilio IE1 call, spoken consent, GPT-Live session with clean closure on both legs, automatic report with carrier duration. No e-mail address was captured on that call.
 
-**`hpe-quickspecs` skill repaired (2026-09-25, outside this repo):** its library search was an unimplemented placeholder (it scraped navigation cards, ignoring the query), and its PDF step used a viewer URL that returns HTML. The fix calls the JSON service behind the HPE Resource Library, ranks results by title match, returns direct PDF links, and rejects non-PDF downloads. Verified: correct document ranked first for Private Cloud AI, Alletra MP X10000, CX 6300 and DL380a Gen12; search → PDF → HTML worked end to end. The fixed skill still needs to be uploaded to claude.ai by the user; the synced local copy is unchanged.
+**Outside this repository:** the `hpe-quickspecs` skill was repaired (real library search, direct PDF links, newest-version enforcement). The fixed package is in the user's Downloads folder and still has to be uploaded to claude.ai; the synced local copy is unchanged.
 
-**Newest versions only (2026-09-25, user request):** the voice agent now uses only the newest version of each document. The Developer Portal and the version 1.5 Administration Guide were removed, together with their conflict notices; the service description V3 was confirmed current. The repaired `hpe-quickspecs` skill now enforces the newest version too: it strips `ver=` from links, reads the version from the PDF's own history, shows it in the summary, and stops if it does not match the search result's date. Verified on real documents. 83/83 offline tests passed.
-
-Remaining open items:
-
-- Make the agent reliably ask for, spell back, and confirm the e-mail address; check how the call ended.
-- Replace the temporary tunnel with a durable HTTPS endpoint before regular use.
-- Calls now wait 2 seconds of silence after pickup before the opening (TwiML `<Pause length="2"/>`); the clarification re-prompt has no pause. Not yet verified on a real call.
-- Summaries now use `gpt-5.6-terra` (user decision; roughly 1–2 cents per call instead of about 0.2 cents with Luna). The first real report above was still written by Luna.
-- The summary notice in the opening is a design choice, not a legal review.
+**Open questions for the user:** how the first call ended (hang-up, agent goodbye, or cut-off), audio quality, answer quality, and whether the agent asked for the e-mail address.
 
 ## Call Reports, Meeting Goal, and Terra Delegation — 2026-09-24
 
@@ -158,10 +150,11 @@ Remaining open items:
 
 ## Next Steps
 
-1. Review the first call with the user: how it ended, audio quality, answer quality, and why no e-mail address was captured; adjust the meeting-request instructions.
-2. Repeat a bounded test call after changes; verify the e-mail is spelled back and appears in the report.
-3. Replace the temporary tunnel with a durable HTTPS endpoint (for example, a reverse proxy on a Hetzner server) before regular use.
-4. Keep this public status record current; retain private troubleshooting details separately. A future repository visibility change requires a separate decision and has not been performed.
+1. Get the user's feedback on the first call (see open questions above) and adjust the meeting-request instructions, especially e-mail capture.
+2. With explicit authorization, run a bounded test call to the designated test contact on one of the new topics. Verify the 2-second pause, QuickSpecs answers, e-mail spelled back, and the Terra-written report.
+3. Upload the repaired `hpe-quickspecs` skill to claude.ai.
+4. Replace the temporary tunnel with a durable HTTPS endpoint (for example, a reverse proxy on a Hetzner server) before regular use.
+5. Keep this public status record current; retain private troubleshooting details separately. A future repository visibility change requires a separate decision and has not been performed.
 
 ## Sources
 
