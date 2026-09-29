@@ -1,6 +1,6 @@
 # Session Status
 
-Updated: 2026-09-25 (Europe/Vienna). Latest code commit: `0ca4cb0`.
+Updated: 2026-09-29 (Europe/Vienna). Latest code commit: `0ca4cb0`.
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
@@ -20,6 +20,11 @@ Latest code commit: `0ca4cb0`, deployed. No work in progress; no call running. O
 **Not yet verified (next real call settles all of it):** whether Twilio accepts port 10556 for callbacks and the Media Streams WebSocket (docs name only 443); whether `gpt-live-1` accepts `cedar` and how it sounds; the new conversation style and e-mail capture in practice.
 
 **Outside this repository:** the repaired `hpe-quickspecs` skill still has to be uploaded to claude.ai.
+
+## Contact Permission Recorded — 2026-09-29
+
+- "… start conversation" stayed disabled for two saved contacts because their contact permission was not documented (intended gate). The operator confirmed permission; both records were updated in the server's contact database (backup taken first). All three contacts are now callable.
+- The UI still cannot change permission on an existing record (re-saving the same number returns 409); use delete and re-save, or add an update action later.
 
 ## Consultant Conversation Style — 2026-09-25
 
