@@ -26,6 +26,7 @@ Latest code commit: `0ca4cb0`, deployed. No work in progress; no call running. O
 - The operator confirmed that the agent has very good foundational knowledge across all three topics (HPE Private Cloud AI, HPE Alletra Storage MP X10000, Aruba Networking CX 6300) and can independently conduct an initial customer conversation.
 - Per the operator, it answers fundamental technical questions competently and explains the key benefits of each solution clearly, for example "What are the key benefits of …?" for each of the three products, and it identifies key requirements in initial discussions.
 - This is the operator's qualitative assessment from their own use; no scored evaluation set or automated test backs it.
+- Also added to the README under [Operator acceptance: topic knowledge](README.md#operator-acceptance-topic-knowledge).
 
 ## Contact Permission Recorded — 2026-09-29
 

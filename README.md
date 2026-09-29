@@ -20,6 +20,12 @@ Use Node.js 22.17 or later. Run `npm ci` and `npm test`, then configure `OPENAI_
 
 Maintain public progress notes in `session.md` after significant work. This file is tracked; keep private handoff details, credentials, and conversation content outside the repository.
 
+## Operator acceptance: topic knowledge
+
+On 29 September 2026 the operator confirmed that the agent has very good foundational knowledge across all three topic areas (HPE Private Cloud AI, HPE Alletra Storage MP X10000, Aruba Networking CX 6300) and can independently conduct an initial customer conversation. According to the operator, it answers fundamental technical questions competently, explains the key benefits of each solution clearly (for example, "What are the key benefits of HPE Private Cloud AI?"), and identifies key requirements in initial discussions.
+
+This is the operator's qualitative assessment from their own use of the agent. No scored evaluation set or automated test backs it.
+
 ## Docker deployment
 
 The agent runs as two containers defined in [deploy/docker-compose.yml](deploy/docker-compose.yml): the Node.js app (built from the [Dockerfile](Dockerfile)) and Caddy as HTTPS reverse proxy ([deploy/Caddyfile](deploy/Caddyfile)).
