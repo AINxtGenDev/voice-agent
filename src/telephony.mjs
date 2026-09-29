@@ -8,6 +8,7 @@ import { createLiveConversation } from './live-conversation.mjs';
 const terminal = new Set(['completed', 'failed', 'busy', 'no-answer', 'canceled']);
 const phone = /^\+[1-9][0-9]{7,14}$/u;
 const ANSWER_PAUSE_SECONDS = 2; // Silence after pickup before the opening.
+const SAY = { language: 'de-DE', voice: 'Google.de-DE-Chirp3-HD-Charon' }; // Male, to match the Live voice `cedar`.
 const DIALOGUE_LIMIT = 40_000;
 const WRAP_UP = 'Die Gesprächszeit endet in etwa einer Minute. Kommen Sie freundlich zum Abschluss: Falls noch nicht geschehen, bieten Sie einen Folgetermin mit HPE-Expertinnen und -Experten an, fassen Sie Vereinbartes kurz zusammen und verabschieden Sie sich.';
 
@@ -137,7 +138,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
   function permissionPrompt(call, message, pauseSeconds = 0) {
     const xml = new twilio.twiml.VoiceResponse();
     if (pauseSeconds) xml.pause({ length: pauseSeconds });
-    xml.say({ language: 'de-DE' }, message);
+    xml.say(SAY, message);
     xml.gather({ input: 'speech', language: 'de-DE', speechTimeout: '2', timeout: 7, actionOnEmptyResult: true, method: 'POST', action: `${base.origin}/twilio/permission?attempt=${call.permissionAttempt}` });
     xml.hangup();
     return xml;
@@ -179,7 +180,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
           call.permission = 'denied';
           if (result.suppressContact) onSuppression(call.customerId);
           xml = new twilio.twiml.VoiceResponse();
-          xml.say({ language: 'de-DE' }, 'Selbstverständlich. Vielen Dank für Ihre Zeit. Ich wünsche Ihnen einen schönen Tag. Auf Wiederhören.');
+          xml.say(SAY, 'Selbstverständlich. Vielen Dank für Ihre Zeit. Ich wünsche Ihnen einen schönen Tag. Auf Wiederhören.');
           xml.hangup();
         }
         publish(call);

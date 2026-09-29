@@ -17,9 +17,15 @@ Latest code commit: `0ca4cb0`, deployed. No work in progress; no call running. O
 - Goal: a follow-up meeting with HPE experts (preferred times, online/on-site, interest, e-mail spelled back). A private Markdown report is written after each call.
 - Three topics with 41 reviewed, page-cited QuickSpecs facts plus curated product-page and service-description facts.
 
-**Not yet verified (next real call settles all of it):** whether Twilio accepts port 10556 for callbacks and the Media Streams WebSocket (docs name only 443); whether `gpt-live-1` accepts `cedar` and how it sounds; the new conversation style and e-mail capture in practice.
+**Verified 2026-09-29:** Twilio accepts port 10556 for callbacks and Media Streams; `gpt-live-1` speaks with `cedar`. **Open:** Live closure after hangup ends `unconfirmed` (no report); male Twilio opening voice not yet heard; e-mail capture not yet checked in practice.
 
 **Outside this repository:** the repaired `hpe-quickspecs` skill still has to be uploaded to claude.ai.
+
+## Test Call via Docker and Male Opening Voice — 2026-09-29
+
+- First call through the Docker deployment (operator's own number, HPE Private Cloud AI, authorized): Twilio accepted port 10556 for callbacks and the Media Streams WebSocket; consent gate, Live session (`cedar`) and dialogue worked. Twilio reports `completed`, 156 s, with one call notification (error 31921, not yet investigated).
+- The Live connection closed without `session.closed` one second after hangup, so the call stayed `unconfirmed`, blocked new calls, and wrote no report (dialogue was in memory only). Reconciled manually against Twilio's call record (backup taken), then restarted the app. Root cause not established: the app writes no logs.
+- Operator feedback: a female voice (Twilio `<Say>` default) read the opening, then the male Live voice followed, which felt confusing and slow (~22 s from pickup to Live). The opening and farewell now use `Google.de-DE-Chirp3-HD-Charon` (male, per [Twilio TTS voices](https://www.twilio.com/docs/voice/twiml/say/text-speech), reviewed 2026-09-29). The pre-Live permission gate is kept. 87/87 offline tests pass; not yet heard on a real call.
 
 ## Operator Acceptance of Topic Knowledge — 2026-09-29
 
