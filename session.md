@@ -21,6 +21,11 @@ Latest code commit: `0ca4cb0`, deployed. No work in progress; no call running. O
 
 **Outside this repository:** the repaired `hpe-quickspecs` skill still has to be uploaded to claude.ai.
 
+## Agent Speaks First After Consent — 2026-09-29
+
+- Operator feedback on the third call: after "Ja" nothing happened until "Ja" was repeated several times. Logs show the first "Ja" was accepted (single `consent_granted`); the silence was the Live agent waiting for the caller, because the post-consent instruction did not ask for immediate speech. Per [GPT-Live: Greet before the caller speaks](https://developers.openai.com/api/docs/guides/live-conversations#greet-before-the-caller-speaks) (reviewed 2026-09-29), the instruction now says to speak immediately without waiting, then pause and listen. `live.first_audio` is logged. 89/89 offline tests pass; deployed (`316f529`); not yet verified on a call.
+- The operator still reported a female voice before the male one; Twilio logged no voice error. Unresolved pending the operator's description.
+
 ## Consent Wording, Event Logging and Clean Test Call — 2026-09-29
 
 - Added a JSON event log (identifiers, states, provider event types; no audio, transcripts or numbers) to `docker compose logs app`, and the matched permission rule plus Twilio confidence per answer.
