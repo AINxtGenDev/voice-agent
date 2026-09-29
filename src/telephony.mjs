@@ -13,6 +13,9 @@ const DIALOGUE_LIMIT = 40_000;
 const WRAP_UP = 'Die Gesprächszeit endet in etwa einer Minute. Kommen Sie freundlich zum Abschluss: Falls noch nicht geschehen, bieten Sie einen Folgetermin mit HPE-Expertinnen und -Experten an, fassen Sie Vereinbartes kurz zusammen und verabschieden Sie sich.';
 
 
+// Operational event log: identifiers, states and provider event types only — never audio, transcripts or phone numbers.
+const log = (call, event, details = {}) => console.log(JSON.stringify({ at: new Date().toISOString(), call: call?.id?.slice(0, 8) ?? null, event, ...details }));
+
 export class TelephonyError extends Error {
   constructor(message, status = 409) { super(message); this.status = status; }
 }
@@ -74,6 +77,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
     const call = current;
     if (!call || terminal.has(call.state)) return status();
     if (call.stopping) { await call.stopping; return status(); }
+    log(call, 'stop.begin', { state: call.state, liveState: call.liveState, phoneEnded: call.phoneEnded });
     call.state = 'closing';
     try { publish(call); } catch { /* Cleanup must proceed even if local journaling fails. */ }
     call.stopping = (async () => {
@@ -83,8 +87,8 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
       const liveClose = new Promise((resolve) => {
         if (['not-started', 'closed'].includes(call.liveState)) return resolve();
         call.resolveLiveClose = resolve;
-        call.closeTimer = setTimeout(() => { call.liveState = 'unconfirmed'; call.live?.terminate(); resolve(); }, closeTimeoutMs);
-        try { send(call.live, { type: 'session.close' }); } catch { call.liveState = 'unconfirmed'; clearTimeout(call.closeTimer); resolve(); }
+        call.closeTimer = setTimeout(() => { log(call, 'live.close_timeout'); call.liveState = 'unconfirmed'; call.live?.terminate(); resolve(); }, closeTimeoutMs);
+        try { send(call.live, { type: 'session.close' }); log(call, 'live.close_sent'); } catch (error) { log(call, 'live.close_send_failed', { error: error.message, readyState: call.live?.readyState }); call.liveState = 'unconfirmed'; clearTimeout(call.closeTimer); resolve(); }
       });
       if (call.callSid && !call.phoneEnded) {
         try {
@@ -94,6 +98,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
       }
       await liveClose;
       if (!call.phoneEnded || !['not-started', 'closed'].includes(call.liveState)) call.state = 'unconfirmed';
+      log(call, 'stop.end', { state: call.state, liveState: call.liveState, phoneEnded: call.phoneEnded });
       finish(call);
       publish(call);
     })();
@@ -166,6 +171,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
         call.answeredAt ??= new Date().toISOString();
         if (speech) remember(call, 'customer', speech.slice(0, 1000));
         const result = speech ? call.permissionGate.handleTranscript(speech) : call.permissionGate.handleSilence();
+        log(call, 'permission.result', { attempt, action: result.action });
         let xml;
         if (result.action === 'consent_granted' && result.mayDiscussProduct) {
           call.permission = 'granted';
@@ -188,6 +194,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
         response.end(xml.toString());
         return;
       }
+      log(call, 'twilio.status', { status: params.CallStatus, duration: params.CallDuration ?? null });
       if (terminal.has(params.CallStatus) && /^[0-9]{1,6}$/u.test(params.CallDuration ?? '')) call.carrierDuration = Number(params.CallDuration);
       if (params.CallStatus === 'in-progress') call.answeredAt ??= new Date().toISOString();
       if (!terminal.has(call.state)) {
@@ -216,12 +223,15 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
   function attachMedia(media, call) {
     call.media = media;
     call.startupTimer = setTimeout(() => abort(call), 10_000);
-    media.on('error', () => abort(call));
-    media.on('close', () => { if (!terminal.has(call.state) && call.state !== 'closing') abort(call); });
+    log(call, 'media.open');
+    media.on('error', (error) => { log(call, 'media.error', { error: error.message }); abort(call); });
+    media.on('close', (code) => {
+      log(call, 'media.close', { code, state: call.state }); if (!terminal.has(call.state) && call.state !== 'closing') abort(call); });
     media.on('message', async (raw) => {
       try {
         const event = JSON.parse(raw.toString());
         if (!event || typeof event !== 'object' || typeof event.event !== 'string') throw new Error('Invalid envelope');
+        if (event.event !== 'media') log(call, `media.${event.event}`);
         if (event.event === 'connected') return;
         if (event.event === 'start') {
           if (call.streamSid || call.startReceived) throw new Error('Duplicate stream');
@@ -236,7 +246,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
           if (event.streamSid !== call.streamSid || typeof event.media?.payload !== 'string' || !/^[A-Za-z0-9+/]*={0,2}$/u.test(event.media.payload) || event.media.payload.length > 8192) throw new Error('Invalid audio');
           if (call.liveState === 'active' && call.state !== 'closing') send(call.live, { type: 'session.input_audio.append', audio: event.media.payload });
         } else if (event.event === 'stop') abort(call);
-      } catch { abort(call); }
+      } catch (error) { log(call, 'media.rejected', { error: error.message }); abort(call); }
     });
   }
 
@@ -246,6 +256,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
     const live = new WebSocketImpl('wss://api.openai.com/v1/live/sessions', { headers: { Authorization: `Bearer ${apiKey}`, 'User-Agent': 'local-voice-agent/0.1' }, handshakeTimeout: 10_000, maxPayload: 1024 * 1024, followRedirects: false });
     call.live = live;
     live.on('open', () => {
+      log(call, 'live.open');
       try {
         if (call.state === 'closing' || call.state === 'unconfirmed') return abort(call);
         call.liveState = 'starting';
@@ -256,6 +267,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
       try {
         const event = JSON.parse(raw.toString());
         if (!event || typeof event !== 'object' || typeof event.type !== 'string') throw new Error('Invalid envelope');
+        if (!event.type.endsWith('.delta')) log(call, `live.${event.type}`, event.type === 'error' ? { error: event.error ?? null } : {});
         if (call.liveState === 'closed') return;
         if (event.type === 'session.started') {
           clearTimeout(call.startupTimer);
@@ -287,10 +299,10 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
           if (event.type === 'session.output_transcript.delta') remember(call, 'agent', event.delta);
           call.conversation?.handle(event);
         }
-      } catch { abort(call); }
+      } catch (error) { log(call, 'live.handler_failed', { error: error.message }); abort(call); }
     });
-    live.on('error', () => abort(call));
-    live.on('close', () => { if (call.liveState !== 'closed') { call.liveState = 'unconfirmed'; call.resolveLiveClose?.(); abort(call); } });
+    live.on('error', (error) => { log(call, 'live.socket_error', { error: error.message }); abort(call); });
+    live.on('close', (code, reason) => { log(call, 'live.socket_close', { code, reason: reason?.toString().slice(0, 200), liveState: call.liveState }); if (call.liveState !== 'closed') { call.liveState = 'unconfirmed'; call.resolveLiveClose?.(); abort(call); } });
   }
 
   async function shutdown() {
