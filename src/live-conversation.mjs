@@ -57,7 +57,7 @@ export function createLiveConversation({ send, close, onSuppression = () => {}, 
       if (started || disposed) return;
       started = true;
       append('session.instructions.append', consentGranted
-        ? `Die ausdrückliche Gesprächserlaubnis wurde vor Verbindungsaufbau geprüft. Bedanke dich freundlich und frage: ${discoveryQuestion(topicId)} Produktdetails nur nach belegter Recherche. Delegiere jede Fachfrage.`
+        ? `Die ausdrückliche Gesprächserlaubnis wurde vor Verbindungsaufbau geprüft. Sprich jetzt sofort auf Deutsch, ohne auf den Anrufer zu warten: Bedanke dich kurz und frage: ${discoveryQuestion(topicId)} Mache danach eine Pause und hör zu. Produktdetails nur nach belegter Recherche. Delegiere jede Fachfrage.`
         : `Sprich zuerst exakt: ${openingForTopic(topicId)} Warte anschließend auf ausdrückliche Zustimmung. Delegiere die Antwort zur Prüfung. Keine Produktdetails vor serverseitiger Freigabe.`);
       waitForPermission();
     },

@@ -281,6 +281,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
           if (maxDurationSeconds > 90) call.wrapUpTimer = setTimeout(() => { try { send(live, { type: 'session.instructions.append', delegation_id: null, content: WRAP_UP }); } catch { /* The carrier limit still ends the call. */ } }, Math.max(0, remaining - 60_000));
         } else if (event.type === 'session.output_audio.delta' && call.state === 'in-progress') {
           if (typeof event.delta !== 'string') throw new Error('Invalid audio');
+          if (!call.firstAudioLogged) { call.firstAudioLogged = true; log(call, 'live.first_audio'); }
           send(call.media, { event: 'media', streamSid: call.streamSid, media: { payload: event.delta } });
         } else if (event.type === 'session.closed') {
           clearTimeout(call.closeTimer);

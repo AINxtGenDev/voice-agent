@@ -34,6 +34,15 @@ test('unconsented product questions never retrieve facts, while clear opt-in ena
   assert.ok(f.events.some(e => e.type === 'session.thinking.append' && e.content.includes('HPE-QS')));
 });
 
+test('after phone consent the agent is told to speak first, without waiting for the caller', () => {
+  const f = fixture({ consentGranted: true });
+  f.conversation.start();
+  assert.equal(f.events[0].type, 'session.instructions.append');
+  assert.equal(f.events[0].delegation_id, null);
+  assert.match(f.events[0].content, /Sprich jetzt sofort.*ohne auf den Anrufer zu warten/);
+  assert.match(f.events[0].content, /Pause und hör zu/);
+});
+
 test('phone consent is supplied by trusted Gather and unsupported prices are not invented', () => {
   const f = fixture({ consentGranted: true });
   f.conversation.start();
