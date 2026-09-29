@@ -17,9 +17,15 @@ Latest code commit: `0ca4cb0`, deployed. No work in progress; no call running. O
 - Goal: a follow-up meeting with HPE experts (preferred times, online/on-site, interest, e-mail spelled back). A private Markdown report is written after each call.
 - Three topics with 41 reviewed, page-cited QuickSpecs facts plus curated product-page and service-description facts.
 
-**Verified 2026-09-29:** Twilio accepts port 10556 for callbacks and Media Streams; `gpt-live-1` speaks with `cedar`. **Open:** Live closure after hangup ends `unconfirmed` (no report); male Twilio opening voice not yet heard; e-mail capture not yet checked in practice.
+**Verified 2026-09-29:** Twilio accepts port 10556 for callbacks and Media Streams; `gpt-live-1` speaks with `cedar`. **Open:** one earlier call ended `unconfirmed` (no report) — not reproduced since; logging is now in place to diagnose a recurrence. E-mail capture not yet checked in practice.
 
 **Outside this repository:** the repaired `hpe-quickspecs` skill still has to be uploaded to claude.ai.
+
+## Consent Wording, Event Logging and Clean Test Call — 2026-09-29
+
+- Added a JSON event log (identifiers, states, provider event types; no audio, transcripts or numbers) to `docker compose logs app`, and the matched permission rule plus Twilio confidence per answer.
+- Second test call ended at the permission check: the operator said "Selbstverständlich", Twilio's transcript (not logged) matched a refusal rule. "Selbstverständlich" and "Natürlich" are now accepted, and the opening ends with „Sagen Sie bitte ‚Ja', um das Gespräch zu starten." 88/88 offline tests pass.
+- Third test call (authorized, operator's own number): consent granted on the first answer (confidence 0.87), Live active 2 s later, 3 min 18 s total, `session.closed` received and call finalized cleanly; report written with follow-up-meeting details. The earlier `unconfirmed` closure did not recur; its cause remains unknown (that call ended by the caller hanging up, this one by the agent-side stop).
 
 ## Test Call via Docker and Male Opening Voice — 2026-09-29
 
