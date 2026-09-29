@@ -171,7 +171,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
         call.answeredAt ??= new Date().toISOString();
         if (speech) remember(call, 'customer', speech.slice(0, 1000));
         const result = speech ? call.permissionGate.handleTranscript(speech) : call.permissionGate.handleSilence();
-        log(call, 'permission.result', { attempt, action: result.action });
+        log(call, 'permission.result', { attempt, action: result.action, rule: result.rule ?? null, heardSpeech: Boolean(speech), confidence: params.Confidence ?? null });
         let xml;
         if (result.action === 'consent_granted' && result.mayDiscussProduct) {
           call.permission = 'granted';

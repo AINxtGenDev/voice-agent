@@ -15,7 +15,7 @@ export function topicName(topicId) {
 }
 
 export function openingForTopic(topicId = 'hpe-private-cloud-ai') {
-  return `Guten Tag! Ich bin der HPE Sprachassistent, erstellt von Werner, und ein KI-Assistent. Das Gespräch halte ich danach in einer kurzen schriftlichen Zusammenfassung fest. Darf ich mit Ihnen ein Gespräch zum Thema ${topicName(topicId)} führen?`;
+  return `Guten Tag! Ich bin der HPE Sprachassistent, erstellt von Werner, und ein KI-Assistent. Das Gespräch halte ich danach in einer kurzen schriftlichen Zusammenfassung fest. Darf ich mit Ihnen ein Gespräch zum Thema ${topicName(topicId)} führen? Sagen Sie bitte „Ja“, um das Gespräch zu starten.`;
 }
 
 // First question after consent: start from the customer's situation, not from product features.
@@ -94,7 +94,7 @@ const GOODBYE = 'Selbstverständlich. Vielen Dank für Ihre Zeit. Ich wünsche I
 const AFFIRMATIVE = new Set([
   'ja', 'ja gerne', 'ja gern', 'ja bitte', 'ja natürlich', 'ja selbstverständlich',
   'gerne', 'gern', 'einverstanden', 'ich stimme zu', 'ja ich stimme zu',
-  'ja das dürfen sie', 'sie dürfen', 'ja legen sie los',
+  'ja das dürfen sie', 'sie dürfen', 'ja legen sie los', 'selbstverständlich', 'natürlich',
 ]);
 function normalize(text) {
   return text.normalize('NFKC').toLocaleLowerCase('de-AT')
@@ -114,12 +114,12 @@ export class ConversationGate {
   #result(action, message = '', suppressContact = false) {
     return { state: this.#state, action, message, mayDiscussProduct: this.mayDiscussProduct, suppressContact };
   }
-  #end(suppressContact = false) {
+  #end(suppressContact = false, rule = '') {
     this.#state = 'ended';
-    return this.#result('end', GOODBYE, suppressContact);
+    return { ...this.#result('end', GOODBYE, suppressContact), rule };
   }
   #clarify(identity = false) {
-    if (this.#clarified) return this.#end();
+    if (this.#clarified) return this.#end(false, 'unclear_twice');
     this.#clarified = true;
     const introduction = identity ? 'Ich bin ein KI-Assistent, erstellt von Werner. ' : '';
     return this.#result(identity ? 'identity' : 'clarify_permission',
@@ -135,10 +135,10 @@ export class ConversationGate {
     const stop = /\b(?:stop|stopp|aufhören|auflegen|beenden|widerrufe|abbrechen)\b|\b(?:kein interesse|keine zeit|jetzt nicht|lassen sie mich in ruhe|auf wiederhören)\b/u.test(value);
     if (this.mayDiscussProduct) {
       const withdrawal = classifyWithdrawal(text);
-      return withdrawal.end ? this.#end(withdrawal.suppressContact) : this.#result('continue');
+      return withdrawal.end ? this.#end(withdrawal.suppressContact, 'withdrawal') : this.#result('continue');
     }
-    if (suppressContact || stop) return this.#end(suppressContact);
-    if (/\b(?:nein|nicht|keinesfalls|niemals)\b/u.test(value)) return this.#end();
+    if (suppressContact || stop) return this.#end(suppressContact, suppressContact ? 'suppress' : 'stop');
+    if (/\b(?:nein|nicht|keinesfalls|niemals)\b/u.test(value)) return this.#end(false, 'negation');
     if (AFFIRMATIVE.has(value)) {
       this.#state = 'product_discussion';
       return this.#result('consent_granted', `Vielen Dank. ${discoveryQuestion(this.#topicId)}`);
@@ -150,7 +150,7 @@ export class ConversationGate {
   // Invoke only when the caller's configured permission-response timer expires.
   handleSilence() {
     if (this.#state === 'ended') return this.#result('end');
-    if (this.mayDiscussProduct) return this.#end();
+    if (this.mayDiscussProduct) return this.#end(false, 'silence');
     return this.#clarify();
   }
 }

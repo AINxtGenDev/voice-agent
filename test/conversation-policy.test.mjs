@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { openingForTopic, buildConversationInstructions, buildBackendInstructions, discoveryQuestion, ConversationGate, classifyWithdrawal } from '../src/conversation-policy.mjs';
 
 test('opening preserves the required German identity and permission wording', () => {
-  assert.equal(openingForTopic(), 'Guten Tag! Ich bin der HPE Sprachassistent, erstellt von Werner, und ein KI-Assistent. Das Gespräch halte ich danach in einer kurzen schriftlichen Zusammenfassung fest. Darf ich mit Ihnen ein Gespräch zum Thema HPE Private Cloud AI führen?');
+  assert.equal(openingForTopic(), 'Guten Tag! Ich bin der HPE Sprachassistent, erstellt von Werner, und ein KI-Assistent. Das Gespräch halte ich danach in einer kurzen schriftlichen Zusammenfassung fest. Darf ich mit Ihnen ein Gespräch zum Thema HPE Private Cloud AI führen? Sagen Sie bitte „Ja“, um das Gespräch zu starten.');
   assert.throws(() => openingForTopic('injected topic'), RangeError);
   assert.throws(() => new ConversationGate('__proto__'), RangeError);
   assert.match(buildConversationInstructions(), /serverseitige Erlaubniszustand/);
@@ -11,7 +11,7 @@ test('opening preserves the required German identity and permission wording', ()
 });
 
 test('only clear complete affirmative answers grant product discussion', () => {
-  for (const reply of ['Ja.', 'Ja, gerne!', 'Ich stimme zu.', 'Einverstanden']) {
+  for (const reply of ['Ja.', 'Ja, gerne!', 'Ich stimme zu.', 'Einverstanden', 'Selbstverständlich.', 'Natürlich!']) {
     const gate = new ConversationGate();
     assert.equal(gate.mayDiscussProduct, false);
     const result = gate.handleTranscript(reply);
@@ -40,6 +40,14 @@ test('refusal and withdrawal end without another permission request', () => {
       assert.equal(gate.handleTranscript('Ja').state, 'ended');
     }
   }
+});
+
+test('an ended permission check names the rule that matched', () => {
+  assert.equal(new ConversationGate().handleTranscript('Natürlich nicht').rule, 'negation');
+  assert.equal(new ConversationGate().handleTranscript('Keine Zeit').rule, 'stop');
+  const gate = new ConversationGate();
+  gate.handleTranscript('Vielleicht');
+  assert.equal(gate.handleTranscript('Vielleicht').rule, 'unclear_twice');
 });
 
 test('suppression requires persistence and never falsely confirms it', () => {
