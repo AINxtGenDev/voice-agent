@@ -17,9 +17,17 @@ Latest code commit: `0ca4cb0`, deployed. No work in progress; no call running. O
 - Goal: a follow-up meeting with HPE experts (preferred times, online/on-site, interest, e-mail spelled back). A private Markdown report is written after each call.
 - Three topics with 41 reviewed, page-cited QuickSpecs facts plus curated product-page and service-description facts.
 
-**Verified 2026-09-29:** Twilio accepts port 10556 for callbacks and Media Streams; `gpt-live-1` speaks with `cedar`. **Open:** one earlier call ended `unconfirmed` (no report) — not reproduced since; logging is now in place to diagnose a recurrence. E-mail capture not yet checked in practice.
+**Verified 2026-09-29:** Twilio accepts port 10556 for callbacks and Media Streams; `gpt-live-1` speaks with `cedar`. **Open:** the Live connection dropped mid-call in 2 of 4 calls (code 1006); drops no longer block calling, but the cause is unknown. E-mail capture not yet checked in practice.
 
 **Outside this repository:** the repaired `hpe-quickspecs` skill still has to be uploaded to claude.ai.
+
+## Dropped Live Connection Handling — 2026-09-29
+
+- Fourth test call (authorized, operator's own number): consent on the first "Ja" (confidence 0.98) and the agent spoke 1 s after `session.started` — the speak-first fix works.
+- About 1:45 into the conversation the OpenAI Live WebSocket closed abnormally (code 1006, no reason, no `error` event) while the call was active; the operator confirmed the call was cut off, not hung up. The first stuck call (16:30) matches the same pattern (~2 min); the 2:49 call closed normally. Cause on OpenAI's side is unknown.
+- The app used to block all further calls after such a drop. It now treats a closed Live socket as ended — as in OpenAI's own WebSocket example, which logs missing final usage and continues — hangs up, finalizes the call, and writes the report with „Sprachdienst: Verbindung unerwartet getrennt; Nutzung unbekannt". Close logs include the time since the last Live message; `response.event` logs now carry the inner type and skip deltas. A regression test covers the drop (it hangs on the previous code). 90/90 offline tests pass.
+- The stuck call was reconciled manually again (Twilio `completed`, 133 s; DB backup taken).
+- **Open:** why the Live connection drops (next step: check whether the drop correlates with delegation/backend activity or elapsed session time; consider reconnecting a new Live session mid-call or a spoken apology before hangup).
 
 ## Agent Speaks First After Consent — 2026-09-29
 

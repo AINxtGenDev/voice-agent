@@ -29,7 +29,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
   const mediaUrl = `${base.origin.replace(/^https:/u, 'wss:')}/twilio/media`;
   let current = null;
   let shuttingDown = false;
-  const snapshot = (call) => call ? { id: call.id, customerId: call.customerId, topicId: call.topicId, permission: call.permission, ...(call.callSid ? { callSid: call.callSid } : {}), state: call.state, liveState: call.liveState, finalized: call.phoneEnded && ['not-started', 'closed'].includes(call.liveState), startedAt: call.startedAt, ...(call.usage ? { usage: call.usage } : {}) } : null;
+  const snapshot = (call) => call ? { id: call.id, customerId: call.customerId, topicId: call.topicId, permission: call.permission, ...(call.callSid ? { callSid: call.callSid } : {}), state: call.state, liveState: call.liveState, finalized: call.phoneEnded && ['not-started', 'closed'].includes(call.liveState), startedAt: call.startedAt, ...(call.usage ? { usage: call.usage } : {}), ...(call.liveDropped ? { liveDropped: true } : {}) } : null;
   const publish = (call) => onState(snapshot(call));
   const status = () => ({ configured: true, provider: 'twilio', reason: null, call: snapshot(current) });
   // Dialogue is kept in memory only until the report is handed off.
@@ -49,7 +49,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
     const summaryAllowed = call.summaryAllowed && call.permission === 'granted';
     const data = { callId: call.id, customerId: call.customerId, topicId: call.topicId, permission: call.permission, outcome: call.state, startedAt: call.startedAt, answeredAt: call.answeredAt ?? null, endedAt,
       durationSeconds: carrier ? call.carrierDuration : (call.answeredAt ? Math.max(0, Math.round((Date.parse(endedAt) - Date.parse(call.answeredAt)) / 1000)) : 0),
-      durationSource: carrier ? 'carrier' : 'local', summaryAllowed, dialogue: summaryAllowed ? call.dialogue : [] };
+      durationSource: carrier ? 'carrier' : 'local', liveDropped: Boolean(call.liveDropped), summaryAllowed, dialogue: summaryAllowed ? call.dialogue : [] };
     call.dialogue = [];
     Promise.resolve().then(() => onFinished(data)).catch(() => {});
   };
@@ -267,7 +267,9 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
       try {
         const event = JSON.parse(raw.toString());
         if (!event || typeof event !== 'object' || typeof event.type !== 'string') throw new Error('Invalid envelope');
-        if (!event.type.endsWith('.delta')) log(call, `live.${event.type}`, event.type === 'error' ? { error: event.error ?? null } : {});
+        call.liveLastMessageAt = Date.now();
+        const inner = event.type === 'response.event' ? event.event?.type : null;
+        if (!(inner ?? event.type).endsWith('.delta')) log(call, `live.${event.type}`, { ...(inner ? { inner } : {}), ...(event.type === 'error' ? { error: event.error ?? null } : {}) });
         if (call.liveState === 'closed') return;
         if (event.type === 'session.started') {
           clearTimeout(call.startupTimer);
@@ -303,7 +305,17 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
       } catch (error) { log(call, 'live.handler_failed', { error: error.message }); abort(call); }
     });
     live.on('error', (error) => { log(call, 'live.socket_error', { error: error.message }); abort(call); });
-    live.on('close', (code, reason) => { log(call, 'live.socket_close', { code, reason: reason?.toString().slice(0, 200), liveState: call.liveState }); if (call.liveState !== 'closed') { call.liveState = 'unconfirmed'; call.resolveLiveClose?.(); abort(call); } });
+    live.on('close', (code, reason) => {
+      log(call, 'live.socket_close', { code, reason: reason?.toString().slice(0, 200), liveState: call.liveState, sinceLastMessageMs: call.liveLastMessageAt ? Date.now() - call.liveLastMessageAt : null });
+      if (call.liveState === 'closed') return;
+      // The socket is gone, so nothing more can be sent on it. As in OpenAI's WebSocket example,
+      // record the missing final usage (liveDropped) instead of blocking every later call.
+      call.liveState = 'closed';
+      call.liveDropped = true;
+      call.resolveLiveClose?.();
+      abort(call);
+      finish(call);
+    });
   }
 
   async function shutdown() {

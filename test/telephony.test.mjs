@@ -293,6 +293,49 @@ test('finished call hands off carrier duration and dialogue once; objection drop
   }
 });
 
+test('a dropped Live connection ends the call, writes a report, and does not block the next call', async () => {
+  class MockLive extends EventEmitter {
+    static OPEN = 1;
+    static instances = [];
+    constructor() { super(); this.readyState = 1; this.bufferedAmount = 0; this.sent = []; MockLive.instances.push(this); queueMicrotask(() => this.emit('open')); }
+    send(raw) {
+      if (this.readyState !== 1) throw new Error('closed');
+      const event = JSON.parse(raw);
+      this.sent.push(event);
+      if (event.type === 'session.start') queueMicrotask(() => this.emit('message', Buffer.from('{"type":"session.started"}')));
+    }
+    drop() { this.readyState = 3; this.emit('close', 1006, Buffer.alloc(0)); }
+    close() { this.drop(); }
+    terminate() { this.drop(); }
+  }
+  const finished = [];
+  const f = fixture({ WebSocketImpl: MockLive, onFinished: data => finished.push(data) });
+  const port = await listen(f.app);
+  try {
+    await f.app.start(destination);
+    const consent = await permission(port, 'Ja, gerne.');
+    const nonce = /name="reservation" value="([a-f0-9]+)"/u.exec(consent.body)[1];
+    const media = new WebSocket(`ws://127.0.0.1:${port}/twilio/media`, { headers: { 'X-Twilio-Signature': twilio.getExpectedTwilioSignature(authToken, 'wss://voice.example/twilio/media', {}) } });
+    await once(media, 'open');
+    media.send(JSON.stringify({ event: 'start', start: { accountSid, callSid, streamSid, customParameters: { reservation: nonce }, mediaFormat: { encoding: 'audio/x-mulaw', sampleRate: 8000, channels: 1 } } }));
+    await delay();
+    assert.equal(f.app.status().call.liveState, 'active');
+    MockLive.instances[0].drop();
+    await delay(50);
+    assert.equal(f.hangups(), 1);
+    const call = f.app.status().call;
+    assert.equal(call.finalized, true);
+    assert.equal(call.state, 'completed');
+    assert.equal(call.liveDropped, true);
+    assert.equal(await callback(port, { AccountSid: accountSid, CallSid: callSid, CallStatus: 'completed', CallDuration: '133' }), 204);
+    await delay();
+    assert.equal(finished.length, 1);
+    assert.equal(finished[0].liveDropped, true);
+    assert.equal(finished[0].durationSeconds, 133);
+    await f.app.start(destination);
+  } finally { await f.app.shutdown(); }
+});
+
 test('without a carrier duration the report falls back to local timing after the wait', async () => {
   const finished = [];
   const f = fixture({ onFinished: data => finished.push(data), reportWaitMs: 30 });

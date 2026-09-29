@@ -72,6 +72,7 @@ export function renderReport({ call, customer, summary = null, summaryError = nu
     `| Thema | ${cell(TOPICS[call.topicId] ?? call.topicId)} |`,
     `| Anrufergebnis | ${cell(OUTCOMES[call.outcome] ?? call.outcome)} |`,
     `| Gesprächserlaubnis | ${cell(PERMISSIONS[call.permission] ?? call.permission)} |`,
+    ...(call.liveDropped ? ['| Sprachdienst | Verbindung unerwartet getrennt; Nutzung unbekannt |'] : []),
     '',
   ];
   if (!call.summaryAllowed) {
