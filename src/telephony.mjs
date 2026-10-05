@@ -144,7 +144,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
     const xml = new twilio.twiml.VoiceResponse();
     if (pauseSeconds) xml.pause({ length: pauseSeconds });
     xml.say(SAY, message);
-    xml.gather({ input: 'speech', language: 'de-DE', speechTimeout: '2', timeout: 7, actionOnEmptyResult: true, method: 'POST', action: `${base.origin}/twilio/permission?attempt=${call.permissionAttempt}` });
+    xml.gather({ input: 'speech', language: 'de-DE', speechTimeout: 'auto', timeout: 7, actionOnEmptyResult: true, method: 'POST', action: `${base.origin}/twilio/permission?attempt=${call.permissionAttempt}` });
     xml.hangup();
     return xml;
   }

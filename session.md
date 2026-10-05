@@ -28,6 +28,12 @@ Latest code commit: `0ca4cb0`, deployed. No work in progress; no call running. O
 - Fix: audio received while `start` is still being validated is dropped (Live is not open yet). Audio before `start` or with a different stream ID is still rejected. Regression test sends `start` and audio in one chunk (fails on the old code). 91/91 offline tests pass. Deployed (`652d8a4`); unsigned callbacks still return 403 and the UI 401 without login.
 - Verified on a real call (authorized, operator's own number, HPE Private Cloud AI): consent on the first "Ja" (confidence 0.88), no audio rejected, Live started 2.4 s after consent and spoke 0.8 s later. The dialogue ran about 3.5 minutes until the caller hung up (Twilio `completed`, 233 s); `session.closed` received and the report was written with follow-up-meeting details. No Live drop this time.
 
+## Shorter Wait After "Ja" — 2026-10-05
+
+- Operator feedback on the verified call: the wait between "Ja" and the agent's first words was too long. Measured from the log: consent callback → stream 0.4 s, Live connect 1.2 s, session start 1.2 s, first audio 0.8 s; before that, Twilio waited for 2 s of silence (`speechTimeout: '2'`) before reporting the answer. Total silence about 6–7 s.
+- The permission prompt now uses `speechTimeout="auto"`, so Twilio stops at the first pause ([TwiML Gather](https://www.twilio.com/docs/voice/twiml/gather), reviewed 2026-10-05; `auto` is only excluded together with `speechModel`, which is not set). Expected saving about 1–2 s. 91/91 offline tests pass. Not yet heard on a real call.
+- Remaining delay is the OpenAI Live connection (about 3 s). Opening Live earlier would change the permission gate (no paid Live session before validated consent and stream), so it is left as a separate decision.
+
 ## Dropped Live Connection Handling — 2026-09-29
 
 - Fourth test call (authorized, operator's own number): consent on the first "Ja" (confidence 0.98) and the agent spoke 1 s after `session.started` — the speak-first fix works.
