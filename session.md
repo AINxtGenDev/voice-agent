@@ -4,9 +4,15 @@ Updated: 2026-10-05 (Europe/Vienna).
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
-## Resume Here — 2026-09-25 (end of session)
+## Resume Here — 2026-10-05 (end of session)
 
-Latest code commit: `0ca4cb0`, deployed. No work in progress; no call running. Offline suite: 87/87 passing. The user's own uncommitted files (`NEXT_STEPS.md`, logo files, `TWILIO_SETUP.md`, `00-prompt.txt`) are intentionally not committed.
+Latest code commit: `400c6ef`, deployed. No work in progress; no call running. Offline suite: 91/91 passing. The user's own uncommitted files (logo files, `TWILIO_SETUP.md`, `00-prompt.txt`) are intentionally not committed. `NEXT_STEPS.md` was committed by mistake in `f43109e` (documentation wording only, no secrets); the user has not yet decided whether to revert it.
+
+**Next decisions (pending the operator):**
+
+1. A test call to measure the shorter consent wait (`speechTimeout="auto"`, not yet heard on a call).
+2. Whether to shorten the remaining ~3 s Live connect: either a short Twilio „Vielen Dank!" while Live connects in parallel, or pre-connecting the Live socket during the opening and sending `session.start` only after consent (billing and idle-timeout behaviour unverified).
+3. Whether the speech-recognized e-mail in reports is reliable (last test produced a placeholder-like address).
 
 **Where it runs:** Docker on a private home server behind Caddy at `https://voicehpe.duckdns.org:10556` (password-protected UI; only signature-checked `/twilio/*` is public). Reboot-tested. The temporary tunnel and GitHub Pages are no longer used. Update with `git pull && docker compose up -d --build` in `deploy/`. Private operational details (host access, secret locations) are kept outside the repository.
 
@@ -17,7 +23,7 @@ Latest code commit: `0ca4cb0`, deployed. No work in progress; no call running. O
 - Goal: a follow-up meeting with HPE experts (preferred times, online/on-site, interest, e-mail spelled back). A private Markdown report is written after each call.
 - Three topics with 41 reviewed, page-cited QuickSpecs facts plus curated product-page and service-description facts.
 
-**Verified 2026-09-29:** Twilio accepts port 10556 for callbacks and Media Streams; `gpt-live-1` speaks with `cedar`. **Open:** the Live connection dropped mid-call in 2 of 4 calls (code 1006); drops no longer block calling, but the cause is unknown. E-mail capture not yet checked in practice.
+**Verified 2026-09-29:** Twilio accepts port 10556 for callbacks and Media Streams; `gpt-live-1` speaks with `cedar`. **Verified 2026-10-05:** calls continue after „Ja" (stream-start race fixed, `652d8a4`); 3.5-minute dialogue with report. **Open:** the Live connection dropped mid-call in 2 of 4 earlier calls (code 1006; not seen 2026-10-05); drops no longer block calling, but the cause is unknown.
 
 **Outside this repository:** the repaired `hpe-quickspecs` skill still has to be uploaded to claude.ai.
 
