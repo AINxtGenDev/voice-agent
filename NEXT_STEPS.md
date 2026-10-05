@@ -1,6 +1,6 @@
 # Next Steps: OpenAI API Key and First GPT-Live Conversation
 
-Documentation reviewed: **18 September 2026**. This repository currently contains a plan and public overview; the operational application has not been implemented. No account access or paid API session was tested when preparing this guide.
+Documentation reviewed: **18 September 2026**. A local prototype is now available; see [local development](LOCAL_DEVELOPMENT.md). API authentication, a short WebSocket session, and browser WebRTC with synthetic audio succeeded after funding. Server-confirmed WebRTC closure reported 18.0 seconds of voice usage. Real microphone conversation quality remains unverified. Customer storage, telephone calling, reports, and email remain planned.
 
 ## 1. Obtain the correct API credential
 
@@ -49,11 +49,11 @@ The prompt hides input and avoids putting the literal key in shell history. Star
 unset OPENAI_API_KEY
 ```
 
-OpenAI SDKs read `OPENAI_API_KEY` from the environment; see the [quickstart](https://developers.openai.com/api/docs/quickstart). This repository does not yet provide a backend start command. For persistent deployment, inject the credential through the host's secret management facility. The existing `.gitignore` excludes `.env`, but an ignored file is not a secret manager.
+OpenAI SDKs read `OPENAI_API_KEY` from the environment; see the [quickstart](https://developers.openai.com/api/docs/quickstart). The local prototype also reads this variable and starts with `npm start`; alternatively, configure an external credential file as described in [local development](LOCAL_DEVELOPMENT.md). For persistent deployment, inject the credential through the host's secret management facility. The existing `.gitignore` excludes `.env`, but an ignored file is not a secret manager.
 
 ## 5. Verify access through a minimal browser prototype
 
-This is the **next implementation task**, not an existing repository feature.
+The prototype implements this connection flow. The **next verification task** is confirming a real microphone conversation and backend delegation.
 
 1. Follow the official [GPT-Live WebRTC quickstart](https://developers.openai.com/api/docs/guides/voice-webrtc?api=live) to implement its browser and trusted-server components. Use `gpt-live-1` for speech and an accessible supported backend model for delegation.
 2. Serve the prototype on localhost, or authenticated HTTPS for a remote device. Keep the project key exclusively on the server.
