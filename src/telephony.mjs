@@ -243,6 +243,8 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
           call.streamSid = startEvent.streamSid;
           openLive(call);
         } else if (event.event === 'media') {
+          // Twilio sends audio right behind start; drop it while start is still being validated.
+          if (call.startReceived && !call.streamSid) return;
           if (event.streamSid !== call.streamSid || typeof event.media?.payload !== 'string' || !/^[A-Za-z0-9+/]*={0,2}$/u.test(event.media.payload) || event.media.payload.length > 8192) throw new Error('Invalid audio');
           if (call.liveState === 'active' && call.state !== 'closing') send(call.live, { type: 'session.input_audio.append', audio: event.media.payload });
         } else if (event.event === 'stop') abort(call);

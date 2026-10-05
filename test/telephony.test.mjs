@@ -131,6 +131,43 @@ test('only the signed reserved stream starts Live; audio codec and both-leg fina
   } finally { await f.app.shutdown(); }
 });
 
+test('audio arriving in the same chunk as start does not abort the call', async () => {
+  class MockLive extends EventEmitter {
+    static OPEN = 1;
+    static instances = [];
+    constructor() { super(); this.readyState = 1; this.bufferedAmount = 0; this.sent = []; MockLive.instances.push(this); queueMicrotask(() => this.emit('open')); }
+    send(raw) {
+      const event = JSON.parse(raw);
+      this.sent.push(event);
+      if (event.type === 'session.start') queueMicrotask(() => this.emit('message', Buffer.from('{"type":"session.started"}')));
+      if (event.type === 'session.close') queueMicrotask(() => this.emit('message', Buffer.from('{"type":"session.closed","usage":{"seconds":2}}')));
+    }
+    close() { this.readyState = 3; this.emit('close'); }
+    terminate() { this.close(); }
+  }
+  const f = fixture({ WebSocketImpl: MockLive });
+  const port = await listen(f.app);
+  try {
+    await f.app.start(destination);
+    const consent = await permission(port, 'Ja');
+    const nonce = /name="reservation" value="([a-f0-9]+)"/u.exec(consent.body)[1];
+    const media = new WebSocket(`ws://127.0.0.1:${port}/twilio/media`, { headers: { 'X-Twilio-Signature': twilio.getExpectedTwilioSignature(authToken, 'wss://voice.example/twilio/media', {}) } });
+    await once(media, 'open');
+    // Twilio sends start and the first audio frames back to back; cork so the server reads them in one chunk.
+    media._socket.cork();
+    media.send(JSON.stringify({ event: 'start', start: { accountSid, callSid, streamSid, customParameters: { reservation: nonce }, mediaFormat: { encoding: 'audio/x-mulaw', sampleRate: 8000, channels: 1 } } }));
+    for (let i = 0; i < 3; i++) media.send(JSON.stringify({ event: 'media', streamSid, media: { payload: '/w==' } }));
+    media._socket.uncork();
+    await delay();
+    assert.equal(f.hangups(), 0);
+    assert.equal(MockLive.instances.length, 1);
+    assert.equal(f.app.status().call.liveState, 'active');
+    media.send(JSON.stringify({ event: 'media', streamSid, media: { payload: '/w==' } }));
+    await delay();
+    assert.equal(MockLive.instances[0].sent.at(-1).type, 'session.input_audio.append');
+  } finally { await f.app.shutdown(); }
+});
+
 test('early signed callback waits for create result without losing final state', async () => {
   let release;
   const calls = () => ({ update: async () => ({ status: 'completed' }) });

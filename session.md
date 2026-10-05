@@ -1,6 +1,6 @@
 # Session Status
 
-Updated: 2026-09-29 (Europe/Vienna). Latest code commit: `0ca4cb0`.
+Updated: 2026-10-05 (Europe/Vienna).
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
@@ -20,6 +20,12 @@ Latest code commit: `0ca4cb0`, deployed. No work in progress; no call running. O
 **Verified 2026-09-29:** Twilio accepts port 10556 for callbacks and Media Streams; `gpt-live-1` speaks with `cedar`. **Open:** the Live connection dropped mid-call in 2 of 4 calls (code 1006); drops no longer block calling, but the cause is unknown. E-mail capture not yet checked in practice.
 
 **Outside this repository:** the repaired `hpe-quickspecs` skill still has to be uploaded to claude.ai.
+
+## Call Ended Right After "Ja" — 2026-10-05
+
+- Three calls (HPE Private Cloud AI, a saved contact, authorized by the operator) all ended immediately after consent. Logs: consent granted (confidence 0.81–0.98), media stream opened, then the first audio frame was rejected as "Invalid audio" and the call was hung up before Live started.
+- Cause: a race in the media handler. The `start` handler awaits before recording the stream ID; Twilio's first audio frames arrive in the same network read, so they were checked against a still-empty stream ID and treated as invalid. Earlier calls only worked because the frames happened to arrive separately.
+- Fix: audio received while `start` is still being validated is dropped (Live is not open yet). Audio before `start` or with a different stream ID is still rejected. Regression test sends `start` and audio in one chunk (fails on the old code). 91/91 offline tests pass. Not yet verified on a real call.
 
 ## Dropped Live Connection Handling — 2026-09-29
 
