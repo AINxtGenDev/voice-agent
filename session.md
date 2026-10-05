@@ -25,7 +25,8 @@ Latest code commit: `0ca4cb0`, deployed. No work in progress; no call running. O
 
 - Three calls (HPE Private Cloud AI, a saved contact, authorized by the operator) all ended immediately after consent. Logs: consent granted (confidence 0.81–0.98), media stream opened, then the first audio frame was rejected as "Invalid audio" and the call was hung up before Live started.
 - Cause: a race in the media handler. The `start` handler awaits before recording the stream ID; Twilio's first audio frames arrive in the same network read, so they were checked against a still-empty stream ID and treated as invalid. Earlier calls only worked because the frames happened to arrive separately.
-- Fix: audio received while `start` is still being validated is dropped (Live is not open yet). Audio before `start` or with a different stream ID is still rejected. Regression test sends `start` and audio in one chunk (fails on the old code). 91/91 offline tests pass. Deployed (`652d8a4`); unsigned callbacks still return 403 and the UI 401 without login. Not yet verified on a real call.
+- Fix: audio received while `start` is still being validated is dropped (Live is not open yet). Audio before `start` or with a different stream ID is still rejected. Regression test sends `start` and audio in one chunk (fails on the old code). 91/91 offline tests pass. Deployed (`652d8a4`); unsigned callbacks still return 403 and the UI 401 without login.
+- Verified on a real call (authorized, operator's own number, HPE Private Cloud AI): consent on the first "Ja" (confidence 0.88), no audio rejected, Live started 2.4 s after consent and spoke 0.8 s later. The dialogue ran about 3.5 minutes until the caller hung up (Twilio `completed`, 233 s); `session.closed` received and the report was written with follow-up-meeting details. No Live drop this time.
 
 ## Dropped Live Connection Handling — 2026-09-29
 
