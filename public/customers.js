@@ -11,6 +11,9 @@ let call = null;
 let callStatusKnown = false;
 let pollingCall = false;
 let pendingRequest = null;
+let listVersion = 0; // Bumped by local saves/deletes so an older list response cannot overwrite them.
+let refreshingCustomers = false;
+let refreshAfterSelect = false;
 const finishedCalls = new Set(['completed', 'failed', 'busy', 'no-answer', 'canceled']);
 function callBlocked() { return !callStatusKnown || Boolean(call && (!finishedCalls.has(call.state) || !call.finalized)); }
 
@@ -30,11 +33,11 @@ async function api(path, payload) {
     const messages = {
       400: 'Check the customer name, international mobile number, product, and permission note.',
       403: 'The request is not permitted. A call requires documented contact permission.',
-      404: 'This customer no longer exists. Refresh the page to load current records.',
+      404: 'This customer no longer exists. The list has been reloaded.',
       409: path.startsWith('/api/calls') ? 'Anrufstart gesperrt. Laufenden oder ungeklärten Gesprächsstatus prüfen.' : 'A customer with this mobile number already exists.',
       503: 'Dienst nicht verfügbar. Den Anrufstatus vor einem erneuten Versuch prüfen.',
     };
-    throw new Error(messages[response.status] || 'The local server could not complete this action. Please try again.');
+    throw Object.assign(new Error(messages[response.status] || 'The local server could not complete this action. Please try again.'), { status: response.status });
   }
   return body;
 }
@@ -77,7 +80,8 @@ function renderList(preferredId = ui['customer-select'].value) {
   if (customers.some(customer => customer.id === preferredId)) ui['customer-select'].value = preferredId;
   renderSelection();
 }
-ui['customer-select'].addEventListener('change', renderSelection);
+ui['customer-select'].addEventListener('change', () => { renderSelection(); if (refreshAfterSelect) void refreshCustomers({ evenIfFocused: true }); });
+ui['customer-select'].addEventListener('blur', () => { if (refreshAfterSelect) void refreshCustomers({ evenIfFocused: true }); });
 let topics = [];
 ui['topic-select'].addEventListener('change', () => {
   const topic = topics.find(item => item.id === ui['topic-select'].value);
@@ -102,7 +106,8 @@ ui['customer-form'].addEventListener('submit', async event => {
       name, mobile, product: ui['customer-product'].value, contactAllowed: ui['contact-allowed'].checked,
       permissionNote: ui['permission-note'].value.trim(),
     });
-    customers.push(result.customer);
+    listVersion++;
+    customers.unshift(result.customer); // Server order: newest first.
     ui['customer-form'].reset();
     renderList(result.customer.id);
     status('Customer saved in the server database. No call was placed.');
@@ -117,10 +122,14 @@ ui['delete-customer'].addEventListener('click', async () => {
   renderSelection();
   try {
     await api('/api/customers/delete', { id: customer.id });
+    listVersion++;
     customers = customers.filter(item => item.id !== customer.id);
     renderList();
     status('Customer deleted from the server database.');
-  } catch (error) { status(error.message || 'The customer could not be deleted.'); }
+  } catch (error) {
+    status(error.message || 'The customer could not be deleted.');
+    if (error.status === 404) { busy = false; await refreshCustomers({ evenIfFocused: true }); }
+  }
   finally { busy = false; renderSelection(); }
 });
 ui['activate-agent'].addEventListener('click', async () => {
@@ -134,7 +143,11 @@ ui['activate-agent'].addEventListener('click', async () => {
     call = result.call;
     pendingRequest = null;
     status('Anrufauftrag angenommen. Verbindungsaufbau und Gesprächsende werden überwacht.');
-  } catch (error) { status(error.message || 'The call request failed.'); }
+  } catch (error) {
+    status(error.message || 'The call request failed.');
+    // 404: the contact was deleted elsewhere; no call was placed, so the request can be dropped.
+    if (error.status === 404) { pendingRequest = null; busy = false; await refreshCustomers({ evenIfFocused: true }); }
+  }
   finally { busy = false; await pollCalling(); renderSelection(); }
 });
 
@@ -183,17 +196,27 @@ async function initialize() {
   renderSelection();
 }
 // Records live in the server database; re-read them so a tab opened earlier (or on another device) shows contacts added elsewhere.
-async function refreshCustomers() {
-  if (busy || document.hidden || document.activeElement === ui['customer-select']) return;
+// evenIfFocused: the trigger (tab shown, window focus, page restore, selection done) means the dropdown cannot be open.
+async function refreshCustomers({ evenIfFocused = false } = {}) {
+  if (refreshingCustomers || busy || pendingRequest || document.hidden) return;
+  refreshingCustomers = true;
+  const version = listVersion;
   try {
     const latest = (await api('/api/customers')).customers;
-    if (busy || JSON.stringify(latest) === JSON.stringify(customers)) return;
+    if (busy || pendingRequest || version !== listVersion) return;
+    // A periodic refresh must not rebuild an open dropdown; apply it once the selection is done.
+    if (!evenIfFocused && document.activeElement === ui['customer-select']) { refreshAfterSelect = true; return; }
+    refreshAfterSelect = false;
+    if (JSON.stringify(latest) === JSON.stringify(customers)) return;
     customers = latest;
     renderList();
   } catch { /* The next refresh retries; existing records stay visible. */ }
+  finally { refreshingCustomers = false; }
 }
 void initialize();
 setInterval(() => void pollCalling(), 2500);
 setInterval(() => void refreshCustomers(), 30000);
-document.addEventListener('visibilitychange', () => void refreshCustomers());
-window.addEventListener('focus', () => void refreshCustomers());
+document.addEventListener('visibilitychange', () => void refreshCustomers({ evenIfFocused: true }));
+window.addEventListener('focus', () => void refreshCustomers({ evenIfFocused: true }));
+// A page restored from the back/forward cache shows its old state until refreshed (https://web.dev/articles/bfcache).
+window.addEventListener('pageshow', event => { if (event.persisted) void refreshCustomers({ evenIfFocused: true }); });
