@@ -105,7 +105,7 @@ ui['customer-form'].addEventListener('submit', async event => {
     customers.push(result.customer);
     ui['customer-form'].reset();
     renderList(result.customer.id);
-    status('Customer saved locally. No call was placed.');
+    status('Customer saved in the server database. No call was placed.');
   } catch (error) { status(error.message || 'The customer could not be saved.'); }
   finally { busy = false; renderSelection(); }
 });
@@ -119,7 +119,7 @@ ui['delete-customer'].addEventListener('click', async () => {
     await api('/api/customers/delete', { id: customer.id });
     customers = customers.filter(item => item.id !== customer.id);
     renderList();
-    status('Customer deleted from local storage.');
+    status('Customer deleted from the server database.');
   } catch (error) { status(error.message || 'The customer could not be deleted.'); }
   finally { busy = false; renderSelection(); }
 });
@@ -182,5 +182,18 @@ async function initialize() {
   busy = false;
   renderSelection();
 }
+// Records live in the server database; re-read them so a tab opened earlier (or on another device) shows contacts added elsewhere.
+async function refreshCustomers() {
+  if (busy || document.hidden || document.activeElement === ui['customer-select']) return;
+  try {
+    const latest = (await api('/api/customers')).customers;
+    if (busy || JSON.stringify(latest) === JSON.stringify(customers)) return;
+    customers = latest;
+    renderList();
+  } catch { /* The next refresh retries; existing records stay visible. */ }
+}
 void initialize();
 setInterval(() => void pollCalling(), 2500);
+setInterval(() => void refreshCustomers(), 30000);
+document.addEventListener('visibilitychange', () => void refreshCustomers());
+window.addEventListener('focus', () => void refreshCustomers());
