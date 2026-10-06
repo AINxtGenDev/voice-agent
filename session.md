@@ -27,6 +27,21 @@ Latest code commit: `13d0d2d` (immediate consent answer, 15-minute calls, review
 
 **Outside this repository:** the repaired `hpe-quickspecs` skill still has to be uploaded to claude.ai.
 
+## Contacts Always From the Server Database — 2026-10-06
+
+- Operator report: a contact added on the phone did not appear on a laptop. The contact was in the server database and the public API returned it with `Cache-Control: no-store`. However, the page read the list only once, at load, so a tab opened earlier stayed stale. Not confirmed on the laptop itself; reloading it should show the contact.
+- Fix (`dc1264f`, `2200c52`, not yet deployed): the list re-reads from the server on window focus, when the tab becomes visible, on back/forward-cache restore ([web.dev bfcache](https://web.dev/articles/bfcache)), and every 30 s. The current selection is kept. Status texts no longer say "saved locally".
+- Critical subagent review found:
+  - a focused dropdown could block every refresh;
+  - an older response could overwrite a save or delete;
+  - a pending call request could get stuck when its contact was deleted elsewhere.
+  All are fixed: only the periodic refresh waits for blur, a version counter discards stale responses, and a 404 (no call placed) reloads the list.
+- Browser-verified against a scratch server with synthetic contacts:
+  - focus refresh with the dropdown focused;
+  - a stale slow response does not remove a fresh save;
+  - the periodic refresh is deferred while focused and applied on blur.
+  Test data removed. 95/95 offline tests pass.
+
 ## Immediate Consent Answer and Longer Calls — 2026-10-06
 
 - Test call (authorized, a saved contact, HPE Private Cloud AI): consent on the first "Ja" (confidence 0.93), then about 4 s of silence before the agent spoke (stream 0.4 s, Live connect 1.2 s, session start 1.5 s, first audio 1.0 s). The call ended at 249 s, 8 s after the one-minute wrap-up instruction ("verabschieden Sie sich"); Twilio's end time precedes the app's hang-up request, so the phone side ended it, not the app or the 300 s limit.
