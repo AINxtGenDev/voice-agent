@@ -41,7 +41,7 @@ test('after phone consent the agent continues from the question already spoken b
   assert.equal(f.events[0].type, 'session.instructions.append');
   assert.equal(f.events[0].delegation_id, null);
   assert.ok(f.events[0].content.includes(`„Vielen Dank. ${discoveryQuestion('hpe-private-cloud-ai')}“`));
-  assert.match(f.events[0].content, /Wiederhole das nicht.*Hör jetzt zu/);
+  assert.match(f.events[0].content, /Wiederhole das nicht.*Sprich nicht zuerst/);
 });
 
 test('phone consent is supplied by trusted Gather and unsupported prices are not invented', () => {

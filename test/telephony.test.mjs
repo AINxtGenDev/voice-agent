@@ -12,13 +12,23 @@ const streamSid = `MZ${'c'.repeat(32)}`;
 const authToken = 'offline-test-token';
 const publicBaseUrl = 'https://voice.example';
 const destination = { customerId: 'fixture', mobile: '+436641234567' };
+// Default Live stand-in: never connects, so no test can reach a real provider by accident.
+class PendingLive extends EventEmitter {
+  static OPEN = 1;
+  static instances = [];
+  constructor() { super(); this.readyState = 0; this.bufferedAmount = 0; PendingLive.instances.push(this); }
+  send() { throw new Error('Not connected'); }
+  close() { this.terminate(); }
+  terminate() { if (this.readyState === 3) return; this.readyState = 3; this.emit('close', 1006, Buffer.alloc(0)); }
+  open() { this.readyState = 1; this.emit('open'); }
+}
 function fixture(overrides = {}) {
   let request;
   let hangups = 0;
   const calls = () => ({ async update() { hangups++; return { status: 'completed' }; } });
   calls.create = async (options) => { request = options; return { sid: callSid }; };
   const client = { calls };
-  const app = createTelephony({ accountSid, authToken, publicBaseUrl, fromNumber: '+436641234568', apiKey: 'test-key', client, closeTimeoutMs: 20, ...overrides });
+  const app = createTelephony({ accountSid, authToken, publicBaseUrl, fromNumber: '+436641234568', apiKey: 'test-key', client, closeTimeoutMs: 20, WebSocketImpl: PendingLive, ...overrides });
   return { app, client, request: () => request, hangups: () => hangups };
 }
 
@@ -217,7 +227,7 @@ test('signed stream with incorrect reservation ends the call and closes Live', a
   } finally { await f.app.shutdown(); }
 });
 
-test('consent is answered at once while Live starts in parallel; early agent audio waits for the stream', async () => {
+test('consent is answered at once while Live starts in parallel; agent audio before the stream is dropped', async () => {
   class MockLive extends EventEmitter {
     static OPEN = 1;
     static instances = [];
@@ -250,7 +260,43 @@ test('consent is answered at once while Live starts in parallel; early agent aud
     media.send(JSON.stringify({ event: 'start', start: { accountSid, callSid, streamSid, customParameters: { reservation: nonce }, mediaFormat: { encoding: 'audio/x-mulaw', sampleRate: 8000, channels: 1 } } }));
     await delay();
     assert.equal(f.hangups(), 0);
-    assert.deepEqual(received, [{ event: 'media', streamSid, media: { payload: 'AAAA' } }]);
+    assert.deepEqual(received, []);
+    assert.equal(MockLive.instances[0].sent[0].session.instructions.includes('Ihre erste Äußerung'), false);
+    MockLive.instances[0].emit('message', Buffer.from(JSON.stringify({ type: 'session.output_audio.delta', delta: 'BBBB' })));
+    await delay();
+    assert.deepEqual(received, [{ event: 'media', streamSid, media: { payload: 'BBBB' } }]);
+  } finally { await f.app.shutdown(); }
+});
+
+test('hangup while Live is still connecting finalizes the call and frees the line', async () => {
+  PendingLive.instances.length = 0;
+  const f = fixture();
+  const port = await listen(f.app);
+  try {
+    await f.app.start(destination);
+    await permission(port, 'Ja');
+    assert.equal(f.app.status().call.liveState, 'connecting');
+    assert.equal(await callback(port, { AccountSid: accountSid, CallSid: callSid, CallStatus: 'completed', CallDuration: '9' }), 204);
+    await delay(50);
+    assert.equal(PendingLive.instances[0].readyState, 3);
+    assert.equal(f.app.status().call.finalized, true);
+    // A late open of the abandoned socket must not start a session.
+    PendingLive.instances[0].open();
+    await f.app.start(destination);
+  } finally { await f.app.shutdown(); }
+});
+
+test('if the media stream never arrives after consent, the call is ended', async () => {
+  PendingLive.instances.length = 0;
+  const f = fixture({ startupTimeoutMs: 30 });
+  const port = await listen(f.app);
+  try {
+    await f.app.start(destination);
+    await permission(port, 'Ja');
+    await delay(100);
+    assert.equal(f.hangups(), 1);
+    assert.equal(PendingLive.instances[0].readyState, 3);
+    assert.equal(f.app.status().call.finalized, true);
   } finally { await f.app.shutdown(); }
 });
 

@@ -8,6 +8,9 @@ test('opening preserves the required German identity and permission wording', ()
   assert.throws(() => new ConversationGate('__proto__'), RangeError);
   assert.match(buildConversationInstructions(), /serverseitige Erlaubniszustand/);
   assert.match(buildConversationInstructions(), /konkreten Beleg/);
+  const phone = buildConversationInstructions('hpe-cx-6300', { phoneConsentAnswered: true });
+  assert.doesNotMatch(phone, /Ihre erste Äußerung|Nach Freigabe/);
+  assert.ok(phone.includes(`Vielen Dank. ${discoveryQuestion('hpe-cx-6300')} Wiederholen Sie nichts davon`));
 });
 
 test('only clear complete affirmative answers grant product discussion', () => {
