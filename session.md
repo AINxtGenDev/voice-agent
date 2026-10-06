@@ -6,7 +6,7 @@ This is a public project status record. Keep credentials, customer information, 
 
 ## Resume Here — 2026-10-05 (end of session)
 
-Latest code commit: `13d0d2d` (immediate consent answer, 15-minute calls, review fixes, silence handling), **not yet deployed**; `400c6ef` is still live. Deployment needs the operator's go-ahead and the server `.env` change `MAX_CALL_SECONDS=300` → `900`. No work in progress; no call running. Offline suite: 91/91 passing. The user's own uncommitted files (logo files, `TWILIO_SETUP.md`, `00-prompt.txt`) are intentionally not committed. `NEXT_STEPS.md` was committed by mistake in `f43109e` (documentation wording only, no secrets); the user has not yet decided whether to revert it.
+Latest code commit: `13d0d2d` (immediate consent answer, 15-minute calls, review fixes, silence handling), **deployed 2026-10-06** with the server setting `MAX_CALL_SECONDS=900` (previous config backed up privately). Not yet heard on a real call. No work in progress; no call running. Offline suite: 91/91 passing. The user's own uncommitted files (logo files, `TWILIO_SETUP.md`, `00-prompt.txt`) are intentionally not committed. `NEXT_STEPS.md` was committed by mistake in `f43109e` (documentation wording only, no secrets); the user has not yet decided whether to revert it.
 
 **Next decisions (pending the operator):**
 
@@ -44,6 +44,7 @@ Latest code commit: `13d0d2d` (immediate consent answer, 15-minute calls, review
 - Accepted trade-offs:
   - Paid Live now starts at the signed, single-use consent callback rather than at stream-nonce validation. Exposure is bounded by a 20 s startup limit.
   - The caller's audio during the spoken question is not captured, because the stream starts after `<Say>`; an early answer can be clipped.
+- Deployed 2026-10-06 at the operator's request: container reports `MAX_CALL_SECONDS=900` and the new code; telephony `configured: true`, no call reserved; UI without login 401, unsigned callback 403. **Next:** a test call to hear the immediate answer, the silence nudge, and the longer call.
 - Possible later improvement, recommended by the reviewer: connect the stream first and play a pre-rendered μ-law clip of the thanks and question for each topic over it, using `mark` and `clear` ([Media Streams messages](https://www.twilio.com/docs/voice/media-streams/websocket-messages)). The voice match with Twilio's `<Say>` is unverified.
 
 ## Call Ended Right After "Ja" — 2026-10-05
