@@ -16,8 +16,8 @@ const destination = { customerId: 'fixture', mobile: '+436641234567' };
 class PendingLive extends EventEmitter {
   static OPEN = 1;
   static instances = [];
-  constructor() { super(); this.readyState = 0; this.bufferedAmount = 0; PendingLive.instances.push(this); }
-  send() { throw new Error('Not connected'); }
+  constructor() { super(); this.readyState = 0; this.bufferedAmount = 0; this.sent = []; PendingLive.instances.push(this); }
+  send(raw) { this.sent.push(raw); throw new Error('Not connected'); }
   close() { this.terminate(); }
   terminate() { if (this.readyState === 3) return; this.readyState = 3; this.emit('close', 1006, Buffer.alloc(0)); }
   open() { this.readyState = 1; this.emit('open'); }
@@ -282,6 +282,7 @@ test('hangup while Live is still connecting finalizes the call and frees the lin
     assert.equal(f.app.status().call.finalized, true);
     // A late open of the abandoned socket must not start a session.
     PendingLive.instances[0].open();
+    assert.deepEqual(PendingLive.instances[0].sent, []);
     await f.app.start(destination);
   } finally { await f.app.shutdown(); }
 });
@@ -482,5 +483,39 @@ test('without a carrier duration the report falls back to local timing after the
     assert.equal(finished[0].durationSource, 'local');
     assert.equal(finished[0].permission, 'denied');
     assert.equal(finished[0].summaryAllowed, false);
+  } finally { await f.app.shutdown(); }
+});
+
+test('a silent caller is nudged once, and a silent line is hung up', async () => {
+  class MockLive extends EventEmitter {
+    static OPEN = 1;
+    static instances = [];
+    constructor() { super(); this.readyState = 1; this.bufferedAmount = 0; this.sent = []; MockLive.instances.push(this); queueMicrotask(() => this.emit('open')); }
+    send(raw) {
+      const event = JSON.parse(raw);
+      this.sent.push(event);
+      if (event.type === 'session.start') queueMicrotask(() => this.emit('message', Buffer.from('{"type":"session.started"}')));
+      if (event.type === 'session.close') queueMicrotask(() => this.emit('message', Buffer.from('{"type":"session.closed","usage":{"seconds":1}}')));
+    }
+    close() { this.readyState = 3; this.emit('close'); }
+    terminate() { this.close(); }
+  }
+  const f = fixture({ WebSocketImpl: MockLive, nudgeMs: 20, idleMs: 80 });
+  const port = await listen(f.app);
+  try {
+    await f.app.start(destination);
+    const consent = await permission(port, 'Ja');
+    const nonce = /name="reservation" value="([a-f0-9]+)"/u.exec(consent.body)[1];
+    const media = new WebSocket(`ws://127.0.0.1:${port}/twilio/media`, { headers: { 'X-Twilio-Signature': twilio.getExpectedTwilioSignature(authToken, 'wss://voice.example/twilio/media', {}) } });
+    await once(media, 'open');
+    media.send(JSON.stringify({ event: 'start', start: { accountSid, callSid, streamSid, customParameters: { reservation: nonce }, mediaFormat: { encoding: 'audio/x-mulaw', sampleRate: 8000, channels: 1 } } }));
+    await delay(40);
+    const nudges = () => MockLive.instances[0].sent.filter(e => e.type === 'session.instructions.append' && /noch nicht geantwortet/.test(e.content)).length;
+    assert.equal(nudges(), 1);
+    assert.equal(f.hangups(), 0);
+    await delay(100);
+    assert.equal(nudges(), 1);
+    assert.equal(f.hangups(), 1);
+    assert.equal(f.app.status().call.finalized, true);
   } finally { await f.app.shutdown(); }
 });

@@ -11,6 +11,7 @@ const ANSWER_PAUSE_SECONDS = 2; // Silence after pickup before the opening.
 const SAY = { language: 'de-DE', voice: 'Google.de-DE-Chirp3-HD-Charon' }; // Male, to match the Live voice `cedar`.
 const DIALOGUE_LIMIT = 40_000;
 const WRAP_UP_MS = 120_000;
+const NUDGE = 'Die Person hat auf die Frage noch nicht geantwortet. Fragen Sie kurz und freundlich nach, ob Sie gut zu hören sind, und wiederholen Sie die Frage sinngemäß in einem Satz.';
 const WRAP_UP = 'Die verfügbare Gesprächszeit endet in etwa zwei Minuten. Brechen Sie nichts abrupt ab: Gehen Sie noch auf das zuletzt Gesagte ein, bieten Sie dann, falls noch nicht geschehen, einen Folgetermin mit HPE-Expertinnen und -Experten an, fassen Sie Vereinbartes kurz zusammen und verabschieden Sie sich innerhalb der nächsten Minute freundlich.';
 
 
@@ -21,7 +22,7 @@ export class TelephonyError extends Error {
   constructor(message, status = 409) { super(message); this.status = status; }
 }
 
-export function createTelephony({ accountSid, authToken, fromNumber, publicBaseUrl, apiKey, region = 'ie1', edge = 'dublin', client = twilio(accountSid, authToken, { region, edge, autoRetry: false, timeout: 10_000 }), WebSocketImpl = WebSocket, maxDurationSeconds = 900, closeTimeoutMs = 10_000, startupTimeoutMs = 20_000, reportWaitMs = 20_000, onState = () => {}, onSuppression = () => {}, onFinished = () => {} } = {}) {
+export function createTelephony({ accountSid, authToken, fromNumber, publicBaseUrl, apiKey, region = 'ie1', edge = 'dublin', client = twilio(accountSid, authToken, { region, edge, autoRetry: false, timeout: 10_000 }), WebSocketImpl = WebSocket, maxDurationSeconds = 900, closeTimeoutMs = 10_000, startupTimeoutMs = 20_000, nudgeMs = 7_000, idleMs = 45_000, reportWaitMs = 20_000, onState = () => {}, onSuppression = () => {}, onFinished = () => {} } = {}) {
   const base = new URL(publicBaseUrl);
   if (base.protocol !== 'https:' || base.username || base.password || base.search || base.hash || base.pathname !== '/') throw new Error('Public telephony URL must be an HTTPS origin.');
   if (!/^AC[a-fA-F0-9]{32}$/u.test(accountSid) || !authToken || !apiKey || !phone.test(fromNumber)) throw new Error('Invalid telephony configuration.');
@@ -58,6 +59,8 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
     if (call.phoneEnded && ['not-started', 'closed'].includes(call.liveState)) {
       call.endedAt ??= new Date().toISOString();
       clearTimeout(call.wrapUpTimer);
+      clearTimeout(call.nudgeTimer);
+      clearTimeout(call.idleTimer);
       clearTimeout(call.deadline);
       clearTimeout(call.startupTimer);
       clearTimeout(call.closeTimer);
@@ -251,7 +254,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
           const nonce = startEvent?.customParameters?.reservation;
           if (call !== current || call.state === 'closing' || call.state === 'unconfirmed' || startEvent?.accountSid !== accountSid || startEvent?.callSid !== call.callSid || typeof nonce !== 'string' || nonce.length !== call.nonce.length || !timingSafeEqual(Buffer.from(nonce), Buffer.from(call.nonce)) || !/^MZ[a-fA-F0-9]{32}$/u.test(startEvent?.streamSid) || startEvent?.mediaFormat?.encoding !== 'audio/x-mulaw' || startEvent.mediaFormat.sampleRate !== 8000 || startEvent.mediaFormat.channels !== 1) throw new Error('Unauthorized media stream');
           call.streamSid = startEvent.streamSid;
-          if (call.liveState === 'active') clearTimeout(call.startupTimer);
+          if (call.liveState === 'active') ready(call);
         } else if (event.event === 'media') {
           // Twilio sends audio right behind start; drop it while start is still being validated.
           if (call.startReceived && !call.streamSid) return;
@@ -260,6 +263,22 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
         } else if (event.event === 'stop') abort(call);
       } catch (error) { log(call, 'media.rejected', { error: error.message }); abort(call); }
     });
+  }
+
+  // Both legs are up: the caller has heard the question, so silence from here on is real.
+  function ready(call) {
+    clearTimeout(call.startupTimer);
+    call.nudgeTimer = setTimeout(() => {
+      if (call.callerHeard) return;
+      log(call, 'live.silence_nudge');
+      try { send(call.live, { type: 'session.instructions.append', delegation_id: null, content: NUDGE }); } catch { /* The idle limit still ends the call. */ }
+    }, nudgeMs);
+    keepAlive(call);
+  }
+  // Ends calls in which neither side has spoken for idleMs, so a silent line does not run until the call limit.
+  function keepAlive(call) {
+    clearTimeout(call.idleTimer);
+    call.idleTimer = setTimeout(() => { log(call, 'idle_hangup'); abort(call); }, idleMs);
   }
 
   function openLive(call) {
@@ -284,13 +303,13 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
         if (!(inner ?? event.type).endsWith('.delta')) log(call, `live.${event.type}`, { ...(inner ? { inner } : {}), ...(event.type === 'error' ? { error: event.error ?? null } : {}) });
         if (call.liveState === 'closed') return;
         if (event.type === 'session.started') {
-          if (call.streamSid) clearTimeout(call.startupTimer);
           if (['closing', 'unconfirmed'].includes(call.state)) { send(live, { type: 'session.close' }); return; }
           call.liveState = 'active';
           call.state = 'in-progress';
           publish(call);
           call.conversation = createLiveConversation({ send: (event) => send(live, event), close: () => { try { send(call.media, { event: 'clear', streamSid: call.streamSid }); } catch { /* Stop still closes both legs. */ } abort(call); }, onSuppression: () => onSuppression(call.customerId), topicId: call.topicId, consentGranted: true, delegationMode: 'responses' });
           call.conversation.start();
+          if (call.streamSid) ready(call);
           const remaining = maxDurationSeconds * 1000 - (Date.now() - Date.parse(call.answeredAt ?? call.startedAt));
           if (maxDurationSeconds > 180) call.wrapUpTimer = setTimeout(() => { try { send(live, { type: 'session.instructions.append', delegation_id: null, content: WRAP_UP }); } catch { /* The carrier limit still ends the call. */ } }, Math.max(0, remaining - WRAP_UP_MS));
         } else if (event.type === 'session.output_audio.delta' && call.state === 'in-progress') {
@@ -310,10 +329,12 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
         } else if (event.type === 'error') abort(call);
         else {
           if (event.type === 'session.input_transcript.delta' && event.delta?.trim()) {
+            call.callerHeard = true;
             if (call.streamSid) send(call.media, { event: 'clear', streamSid: call.streamSid });
           }
           if (event.type === 'session.input_transcript.delta') remember(call, 'customer', event.delta);
           if (event.type === 'session.output_transcript.delta') remember(call, 'agent', event.delta);
+          if (['session.input_transcript.delta', 'session.output_transcript.delta'].includes(event.type) && event.delta?.trim()) keepAlive(call);
           call.conversation?.handle(event);
         }
       } catch (error) { log(call, 'live.handler_failed', { error: error.message }); abort(call); }
