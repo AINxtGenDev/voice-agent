@@ -6,7 +6,7 @@ This is a public project status record. Keep credentials, customer information, 
 
 ## Resume Here — 2026-10-05 (end of session)
 
-Latest code commit: `743b599` (immediate consent answer, 15-minute calls), **not yet deployed**; previous `400c6ef` is live. No work in progress; no call running. Offline suite: 91/91 passing. The user's own uncommitted files (logo files, `TWILIO_SETUP.md`, `00-prompt.txt`) are intentionally not committed. `NEXT_STEPS.md` was committed by mistake in `f43109e` (documentation wording only, no secrets); the user has not yet decided whether to revert it.
+Latest code commit: `13d0d2d` (immediate consent answer, 15-minute calls, review fixes, silence handling), **not yet deployed**; `400c6ef` is still live. Deployment needs the operator's go-ahead and the server `.env` change `MAX_CALL_SECONDS=300` → `900`. No work in progress; no call running. Offline suite: 91/91 passing. The user's own uncommitted files (logo files, `TWILIO_SETUP.md`, `00-prompt.txt`) are intentionally not committed. `NEXT_STEPS.md` was committed by mistake in `f43109e` (documentation wording only, no secrets); the user has not yet decided whether to revert it.
 
 **Next decisions (pending the operator):**
 
@@ -32,6 +32,19 @@ Latest code commit: `743b599` (immediate consent answer, 15-minute calls), **not
 - Test call (authorized, a saved contact, HPE Private Cloud AI): consent on the first "Ja" (confidence 0.93), then about 4 s of silence before the agent spoke (stream 0.4 s, Live connect 1.2 s, session start 1.5 s, first audio 1.0 s). The call ended at 249 s, 8 s after the one-minute wrap-up instruction ("verabschieden Sie sich"); Twilio's end time precedes the app's hang-up request, so the phone side ended it, not the app or the 300 s limit.
 - Fix (`743b599`, not yet deployed): on validated consent, Twilio immediately says „Vielen Dank." plus the topic's first question in the opening voice while the Live session starts in parallel. Live now starts at the signed consent callback instead of at stream start; a forged stream still ends the call and closes Live. Agent audio before the stream starts is held and flushed. The Live instruction tells the agent the question was already asked.
 - Calls now default to 15 minutes (`MAX_CALL_SECONDS`, up to 1800), with a gentler wrap-up two minutes before the limit. The server's private `.env` still sets 300 and must be changed at deployment. 92/92 offline tests pass; the new tests fail on the old code.
+- Critical review by a subagent (two passes):
+  - First pass found a blocker: one test reached the real OpenAI endpoint with a dummy key. Tests now default to an inert Live mock; the second pass confirmed no non-loopback connections.
+  - A hangup while Live was still connecting left the call unconfirmed and blocked later calls (reproduced). `stop()` now terminates a connecting socket. This was also checked against the real `ws` library.
+  - The Live opens only after the consent TwiML is sent.
+  - The phone session instructions now say the carrier voice already asked the first question.
+  - Agent audio produced before the stream starts is dropped and logged, not replayed.
+  - The deadline is set to the limit + 60 s (Twilio does not document whether `timeLimit` counts from creation or answer).
+  - Fixes are in `e574798`.
+- Second pass found dead air if the caller stays silent. Now the agent checks in once after 7 s without an answer, and the call ends after 45 s in which neither side speaks (`13d0d2d`). 95/95 offline tests pass.
+- Accepted trade-offs:
+  - Paid Live now starts at the signed, single-use consent callback rather than at stream-nonce validation. Exposure is bounded by a 20 s startup limit.
+  - The caller's audio during the spoken question is not captured, because the stream starts after `<Say>`; an early answer can be clipped.
+- Possible later improvement, recommended by the reviewer: connect the stream first and play a pre-rendered μ-law clip of the thanks and question for each topic over it, using `mark` and `clear` ([Media Streams messages](https://www.twilio.com/docs/voice/media-streams/websocket-messages)). The voice match with Twilio's `<Say>` is unverified.
 
 ## Call Ended Right After "Ja" — 2026-10-05
 
