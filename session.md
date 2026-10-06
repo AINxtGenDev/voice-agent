@@ -1,36 +1,57 @@
 # Session Status
 
-Updated: 2026-10-05 (Europe/Vienna).
+Updated: 2026-10-06 (Europe/Vienna).
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
-## Resume Here — 2026-10-05 (end of session)
+## Resume Here — 2026-10-06 (end of session)
 
-Latest code commit: `13d0d2d` (immediate consent answer, 15-minute calls, review fixes, silence handling), **deployed 2026-10-06** with the server setting `MAX_CALL_SECONDS=900` (previous config backed up privately). Not yet heard on a real call. No work in progress; no call running. Offline suite: 91/91 passing. The user's own uncommitted files (logo files, `TWILIO_SETUP.md`, `00-prompt.txt`) are intentionally not committed. `NEXT_STEPS.md` was committed by mistake in `f43109e` (documentation wording only, no secrets); the user has not yet decided whether to revert it.
+**State:** everything is committed, pushed and deployed. The server runs the latest code (contact refresh `2200c52`, call changes `13d0d2d`) with `MAX_CALL_SECONDS=900`. Re-verified after deployment:
+- container settings and served UI script are current;
+- telephony configured, no call reserved;
+- UI without login 401, unsigned callback 403;
+- the API returns all four saved contacts.
 
-**Next decisions (pending the operator):**
+No work in progress; no call running. Offline suite: 95/95 passing.
+- The user's own uncommitted files (logo files, `TWILIO_SETUP.md`, `00-prompt.txt`) are intentionally not committed.
+- `NEXT_STEPS.md` was committed by mistake in `f43109e` (documentation wording only, no secrets); the user has not yet decided whether to revert it.
 
-1. A test call to measure the shorter consent wait (`speechTimeout="auto"`, not yet heard on a call).
-2. Whether to shorten the remaining ~3 s Live connect: either a short Twilio „Vielen Dank!" while Live connects in parallel, or pre-connecting the Live socket during the opening and sending `session.start` only after consent (billing and idle-timeout behaviour unverified).
-3. Whether the speech-recognized e-mail in reports is reliable (last test produced a placeholder-like address).
+**Working method requested by the operator:** after each change, a critical review subagent checks it against best practices. Confirmed findings are fixed with tests, then the session record is updated, committed and pushed. Production deploys still need explicit approval.
 
-**Where it runs:** Docker on a private home server behind Caddy at `https://voicehpe.duckdns.org:10556` (password-protected UI; only signature-checked `/twilio/*` is public). Reboot-tested. The temporary tunnel and GitHub Pages are no longer used. Update with `git pull && docker compose up -d --build` in `deploy/`. Private operational details (host access, secret locations) are kept outside the repository.
+**Next steps (pending the operator):**
+
+1. Test call (needs authorization) to hear:
+   - the immediate „Vielen Dank" + first question after „Ja";
+   - that the agent does not repeat the question;
+   - the 7 s silence nudge;
+   - a call longer than 5 minutes with the gentle wrap-up two minutes before 15 minutes.
+   Log events to watch: `permission.result`, `live.open` (now before `media.start`), `live.silence_nudge`, `idle_hangup`, `live.audio_before_stream_dropped`.
+2. Confirm on the laptop that saved contacts appear (reload once; afterwards the list refreshes on its own).
+3. Possible improvement from the review: connect the stream first and play a pre-rendered clip of the thanks and question for each topic, so an early answer is not clipped.
+4. Whether the speech-recognized e-mail in reports is reliable (an earlier test produced a placeholder-like address).
+
+**Where it runs:** Docker on a private home server behind Caddy at `https://voicehpe.duckdns.org:10556` (password-protected UI; only signature-checked `/twilio/*` is public). Reboot-tested. The temporary tunnel and GitHub Pages are no longer used. Update with `git pull && docker compose up -d --build` in `deploy/`. Private operational details (host access, secret locations, config backups) are kept outside the repository.
 
 **Current capabilities:**
 
-- Telephone calls via Twilio IE1, 2-second pause after pickup, spoken AI disclosure and permission gate, then GPT-Live (voice `cedar`) with Responses delegation to `gpt-5.6-terra`. Calls last at most 5 minutes by default.
+- Telephone calls via Twilio IE1:
+  - a 2-second pause after pickup, then the spoken AI disclosure and permission gate;
+  - after „Ja", the opening voice immediately thanks the caller and asks the first question while GPT-Live (voice `cedar`, Responses delegation to `gpt-5.6-terra`) connects in parallel;
+  - calls last up to 15 minutes by default, with a wrap-up two minutes before the end;
+  - a silent caller gets one nudge after 7 s, and a line with no speech from either side ends after 45 s.
 - Senior-consultant conversation style (discovery-led, one question at a time, objection handling, cross-solution links). The selected topic leads; other products join only when named. No references or installation claims until approved ones exist.
 - Goal: a follow-up meeting with HPE experts (preferred times, online/on-site, interest, e-mail spelled back). A private Markdown report is written after each call.
 - Three topics with 41 reviewed, page-cited QuickSpecs facts plus curated product-page and service-description facts.
+- Contacts are stored in the server database. The UI re-reads them on focus or visibility, on back/forward-cache restore, and every 30 s.
 
-**Verified 2026-09-29:** Twilio accepts port 10556 for callbacks and Media Streams; `gpt-live-1` speaks with `cedar`. **Verified 2026-10-05:** calls continue after „Ja" (stream-start race fixed, `652d8a4`); 3.5-minute dialogue with report. **Open:** the Live connection dropped mid-call in 2 of 4 earlier calls (code 1006; not seen 2026-10-05); drops no longer block calling, but the cause is unknown.
+**Verified 2026-09-29:** Twilio accepts port 10556 for callbacks and Media Streams; `gpt-live-1` speaks with `cedar`. **Verified 2026-10-05:** calls continue after „Ja" (stream-start race fixed, `652d8a4`); 3.5-minute dialogue with report. **Open:** the Live connection dropped mid-call in 2 of 4 earlier calls (code 1006; not seen 2026-10-05 or 2026-10-06); drops no longer block calling, but the cause is unknown.
 
 **Outside this repository:** the repaired `hpe-quickspecs` skill still has to be uploaded to claude.ai.
 
 ## Contacts Always From the Server Database — 2026-10-06
 
 - Operator report: a contact added on the phone did not appear on a laptop. The contact was in the server database and the public API returned it with `Cache-Control: no-store`. However, the page read the list only once, at load, so a tab opened earlier stayed stale. Not confirmed on the laptop itself; reloading it should show the contact.
-- Fix (`dc1264f`, `2200c52`, not yet deployed): the list re-reads from the server on window focus, when the tab becomes visible, on back/forward-cache restore ([web.dev bfcache](https://web.dev/articles/bfcache)), and every 30 s. The current selection is kept. Status texts no longer say "saved locally".
+- Fix (`dc1264f`, `2200c52`, deployed 2026-10-06): the list re-reads from the server on window focus, when the tab becomes visible, on back/forward-cache restore ([web.dev bfcache](https://web.dev/articles/bfcache)), and every 30 s. The current selection is kept. Status texts no longer say "saved locally".
 - Critical subagent review found:
   - a focused dropdown could block every refresh;
   - an older response could overwrite a save or delete;
