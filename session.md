@@ -6,7 +6,7 @@ This is a public project status record. Keep credentials, customer information, 
 
 ## Resume Here — 2026-10-05 (end of session)
 
-Latest code commit: `400c6ef`, deployed. No work in progress; no call running. Offline suite: 91/91 passing. The user's own uncommitted files (logo files, `TWILIO_SETUP.md`, `00-prompt.txt`) are intentionally not committed. `NEXT_STEPS.md` was committed by mistake in `f43109e` (documentation wording only, no secrets); the user has not yet decided whether to revert it.
+Latest code commit: `743b599` (immediate consent answer, 15-minute calls), **not yet deployed**; previous `400c6ef` is live. No work in progress; no call running. Offline suite: 91/91 passing. The user's own uncommitted files (logo files, `TWILIO_SETUP.md`, `00-prompt.txt`) are intentionally not committed. `NEXT_STEPS.md` was committed by mistake in `f43109e` (documentation wording only, no secrets); the user has not yet decided whether to revert it.
 
 **Next decisions (pending the operator):**
 
@@ -26,6 +26,12 @@ Latest code commit: `400c6ef`, deployed. No work in progress; no call running. O
 **Verified 2026-09-29:** Twilio accepts port 10556 for callbacks and Media Streams; `gpt-live-1` speaks with `cedar`. **Verified 2026-10-05:** calls continue after „Ja" (stream-start race fixed, `652d8a4`); 3.5-minute dialogue with report. **Open:** the Live connection dropped mid-call in 2 of 4 earlier calls (code 1006; not seen 2026-10-05); drops no longer block calling, but the cause is unknown.
 
 **Outside this repository:** the repaired `hpe-quickspecs` skill still has to be uploaded to claude.ai.
+
+## Immediate Consent Answer and Longer Calls — 2026-10-06
+
+- Test call (authorized, a saved contact, HPE Private Cloud AI): consent on the first "Ja" (confidence 0.93), then about 4 s of silence before the agent spoke (stream 0.4 s, Live connect 1.2 s, session start 1.5 s, first audio 1.0 s). The call ended at 249 s, 8 s after the one-minute wrap-up instruction ("verabschieden Sie sich"); Twilio's end time precedes the app's hang-up request, so the phone side ended it, not the app or the 300 s limit.
+- Fix (`743b599`, not yet deployed): on validated consent, Twilio immediately says „Vielen Dank." plus the topic's first question in the opening voice while the Live session starts in parallel. Live now starts at the signed consent callback instead of at stream start; a forged stream still ends the call and closes Live. Agent audio before the stream starts is held and flushed. The Live instruction tells the agent the question was already asked.
+- Calls now default to 15 minutes (`MAX_CALL_SECONDS`, up to 1800), with a gentler wrap-up two minutes before the limit. The server's private `.env` still sets 300 and must be changed at deployment. 92/92 offline tests pass; the new tests fail on the old code.
 
 ## Call Ended Right After "Ja" — 2026-10-05
 
