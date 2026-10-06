@@ -28,7 +28,7 @@ test('outbound reservation prevents concurrent dial; carrier duration and signed
     const pending = f.app.start(destination);
     await assert.rejects(f.app.start(destination), /reserved/);
     await pending;
-    assert.equal(f.request().timeLimit, 300);
+    assert.equal(f.request().timeLimit, 900);
     assert.equal(f.request().timeout, 20);
     assert.equal(f.request().statusCallback, 'https://voice.example/twilio/status');
     assert.match(f.request().twiml, /<Response><Pause length="2"\/><Say[^>]*>Guten Tag/u);
@@ -187,10 +187,21 @@ test('early signed callback waits for create result without losing final state',
   } finally { await f.app.shutdown(); }
 });
 
-test('signed stream with incorrect reservation cannot open a paid Live session', async () => {
-  let liveConnections = 0;
-  class ForbiddenLive { static OPEN = 1; constructor() { liveConnections++; throw new Error('Must not connect'); } }
-  const f = fixture({ WebSocketImpl: ForbiddenLive });
+test('signed stream with incorrect reservation ends the call and closes Live', async () => {
+  class MockLive extends EventEmitter {
+    static OPEN = 1;
+    static instances = [];
+    constructor() { super(); this.readyState = 1; this.bufferedAmount = 0; this.sent = []; MockLive.instances.push(this); queueMicrotask(() => this.emit('open')); }
+    send(raw) {
+      const event = JSON.parse(raw);
+      this.sent.push(event);
+      if (event.type === 'session.start') queueMicrotask(() => this.emit('message', Buffer.from('{"type":"session.started"}')));
+      if (event.type === 'session.close') queueMicrotask(() => this.emit('message', Buffer.from('{"type":"session.closed","usage":{"seconds":1}}')));
+    }
+    close() { this.readyState = 3; this.emit('close'); }
+    terminate() { this.close(); }
+  }
+  const f = fixture({ WebSocketImpl: MockLive });
   const port = await listen(f.app);
   try {
     await f.app.start(destination);
@@ -198,9 +209,48 @@ test('signed stream with incorrect reservation cannot open a paid Live session',
     const media = new WebSocket(`ws://127.0.0.1:${port}/twilio/media`, { headers: { 'X-Twilio-Signature': twilio.getExpectedTwilioSignature(authToken, 'wss://voice.example/twilio/media', {}) } });
     await once(media, 'open');
     media.send(JSON.stringify({ event: 'start', start: { accountSid, callSid, streamSid, customParameters: { reservation: '0'.repeat(64) }, mediaFormat: { encoding: 'audio/x-mulaw', sampleRate: 8000, channels: 1 } } }));
-    await delay();
-    assert.equal(liveConnections, 0);
+    await delay(50);
     assert.equal(f.hangups(), 1);
+    assert.ok(MockLive.instances[0].sent.some(e => e.type === 'session.close'));
+    assert.equal(f.app.status().call.liveState, 'closed');
+    assert.equal(f.app.status().call.finalized, true);
+  } finally { await f.app.shutdown(); }
+});
+
+test('consent is answered at once while Live starts in parallel; early agent audio waits for the stream', async () => {
+  class MockLive extends EventEmitter {
+    static OPEN = 1;
+    static instances = [];
+    constructor() { super(); this.readyState = 1; this.bufferedAmount = 0; this.sent = []; MockLive.instances.push(this); queueMicrotask(() => this.emit('open')); }
+    send(raw) {
+      const event = JSON.parse(raw);
+      this.sent.push(event);
+      if (event.type === 'session.start') queueMicrotask(() => this.emit('message', Buffer.from('{"type":"session.started"}')));
+      if (event.type === 'session.close') queueMicrotask(() => this.emit('message', Buffer.from('{"type":"session.closed","usage":{"seconds":2}}')));
+    }
+    close() { this.readyState = 3; this.emit('close'); }
+    terminate() { this.close(); }
+  }
+  const f = fixture({ WebSocketImpl: MockLive });
+  const port = await listen(f.app);
+  try {
+    await f.app.start(destination);
+    const consent = await permission(port, 'Ja');
+    // The thanks and first question are spoken before the stream connects.
+    assert.match(consent.body, /<Response><Say[^>]*>Vielen Dank\. Darf ich zuerst fragen[^<]*<\/Say><Connect><Stream/u);
+    await delay();
+    assert.equal(MockLive.instances.length, 1);
+    assert.equal(f.app.status().call.liveState, 'active');
+    MockLive.instances[0].emit('message', Buffer.from(JSON.stringify({ type: 'session.output_audio.delta', delta: 'AAAA' })));
+    const nonce = /name="reservation" value="([a-f0-9]+)"/u.exec(consent.body)[1];
+    const media = new WebSocket(`ws://127.0.0.1:${port}/twilio/media`, { headers: { 'X-Twilio-Signature': twilio.getExpectedTwilioSignature(authToken, 'wss://voice.example/twilio/media', {}) } });
+    const received = [];
+    media.on('message', raw => received.push(JSON.parse(raw)));
+    await once(media, 'open');
+    media.send(JSON.stringify({ event: 'start', start: { accountSid, callSid, streamSid, customParameters: { reservation: nonce }, mediaFormat: { encoding: 'audio/x-mulaw', sampleRate: 8000, channels: 1 } } }));
+    await delay();
+    assert.equal(f.hangups(), 0);
+    assert.deepEqual(received, [{ event: 'media', streamSid, media: { payload: 'AAAA' } }]);
   } finally { await f.app.shutdown(); }
 });
 

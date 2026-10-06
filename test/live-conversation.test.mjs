@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createLiveConversation } from '../src/live-conversation.mjs';
+import { discoveryQuestion } from '../src/conversation-policy.mjs';
 
 function fixture(options = {}) {
   const events = [];
@@ -34,13 +35,13 @@ test('unconsented product questions never retrieve facts, while clear opt-in ena
   assert.ok(f.events.some(e => e.type === 'session.thinking.append' && e.content.includes('HPE-QS')));
 });
 
-test('after phone consent the agent is told to speak first, without waiting for the caller', () => {
+test('after phone consent the agent continues from the question already spoken by the carrier', () => {
   const f = fixture({ consentGranted: true });
   f.conversation.start();
   assert.equal(f.events[0].type, 'session.instructions.append');
   assert.equal(f.events[0].delegation_id, null);
-  assert.match(f.events[0].content, /Sprich jetzt sofort.*ohne auf den Anrufer zu warten/);
-  assert.match(f.events[0].content, /Pause und hör zu/);
+  assert.ok(f.events[0].content.includes(`„Vielen Dank. ${discoveryQuestion('hpe-private-cloud-ai')}“`));
+  assert.match(f.events[0].content, /Wiederhole das nicht.*Hör jetzt zu/);
 });
 
 test('phone consent is supplied by trusted Gather and unsupported prices are not invented', () => {

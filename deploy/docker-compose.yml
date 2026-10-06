@@ -12,7 +12,7 @@ services:
       TWILIO_CREDENTIAL_FILE: /run/voicehpe/twilio
       TWILIO_PUBLIC_BASE_URL: https://${DUCKDNS_DOMAIN}.duckdns.org:${HTTPS_PORT}
       PUBLIC_UI_ORIGIN: https://${DUCKDNS_DOMAIN}.duckdns.org:${HTTPS_PORT}
-      MAX_CALL_SECONDS: ${MAX_CALL_SECONDS:-300}
+      MAX_CALL_SECONDS: ${MAX_CALL_SECONDS:-900}
     volumes:
       - ${SECRETS_DIR}/openai:/run/voicehpe/openai:ro
       - ${SECRETS_DIR}/twilio:/run/voicehpe/twilio:ro

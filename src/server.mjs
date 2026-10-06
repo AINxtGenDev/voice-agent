@@ -157,7 +157,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       const onFinished = createCallReporter({ apiKey, customerStore, directory: fileURLToPath(new URL('../reports/', import.meta.url)) });
       telephony = createTelephony({ ...credentials, apiKey, publicBaseUrl: process.env.TWILIO_PUBLIC_BASE_URL,
         region: process.env.TWILIO_REGION || 'ie1', edge: process.env.TWILIO_EDGE || 'dublin',
-        maxDurationSeconds: process.env.MAX_CALL_SECONDS === undefined ? 300 : Number(process.env.MAX_CALL_SECONDS),
+        maxDurationSeconds: process.env.MAX_CALL_SECONDS === undefined ? 900 : Number(process.env.MAX_CALL_SECONDS),
         onState: (state) => customerStore.recordCall(state), onSuppression: (id) => customerStore.suppress(id), onFinished });
       await new Promise((resolve, reject) => {
         telephony.gateway.once('error', reject);
