@@ -115,3 +115,18 @@ test('after consent the agent asks about the customer situation, not a product f
   assert.equal(gate.handleTranscript('Ja').message, `Vielen Dank. ${discoveryQuestion('hpe-cx-6300')}`);
   assert.match(discoveryQuestion('hpe-cx-6300'), /derzeit/);
 });
+
+test('every message the permission gate can speak is a known, pre-recorded carrier prompt', async () => {
+  const { requiredPromptTexts } = await import('../src/voice-prompts.mjs');
+  const known = new Set(requiredPromptTexts());
+  const answers = ['Ja', 'Nein', 'Vielleicht', 'Wer sind Sie?', 'Stopp', 'Bitte nicht mehr anrufen', 'Selbstverständlich', null];
+  for (const topicId of ['hpe-private-cloud-ai', 'hpe-alletra-mp-x10000', 'hpe-cx-6300']) {
+    for (const first of answers) for (const second of answers) {
+      const gate = new ConversationGate(topicId);
+      for (const answer of [first, second]) {
+        const result = answer === null ? gate.handleSilence() : gate.handleTranscript(answer);
+        if (result.message) assert.ok(known.has(result.message), result.message);
+      }
+    }
+  }
+});

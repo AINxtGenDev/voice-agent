@@ -5,6 +5,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY src ./src
 COPY public ./public
+COPY voice ./voice
 # Mount points for the private contact database and call reports (owned by uid 1000).
 RUN mkdir -p .private reports && chown node:node .private reports
 USER node

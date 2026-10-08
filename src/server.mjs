@@ -179,8 +179,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     };
     process.on('SIGINT', shutdown);
     process.on('SIGTERM', shutdown);
-  } catch {
-    console.error('Startup failed. Check credential configuration and session duration.');
+  } catch (error) {
+    // Recording names and paths are not secret; credential errors keep the generic message.
+    console.error(/^Missing voice recordings/u.test(error?.message) ? error.message : 'Startup failed. Check credential configuration and session duration.');
     process.exitCode = 1;
   }
 }

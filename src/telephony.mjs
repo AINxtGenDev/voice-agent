@@ -1,14 +1,14 @@
 import http from 'node:http';
-import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import twilio from 'twilio';
 import WebSocket, { WebSocketServer } from 'ws';
-import { openingForTopic, topicName, buildConversationInstructions, buildBackendInstructions, objectsToSummary, BACKEND_MODEL, KNOWLEDGE_TOOL, ConversationGate } from './conversation-policy.mjs';
+import { openingForTopic, GOODBYE, buildConversationInstructions, buildBackendInstructions, objectsToSummary, BACKEND_MODEL, KNOWLEDGE_TOOL, ConversationGate } from './conversation-policy.mjs';
 import { createLiveConversation } from './live-conversation.mjs';
+import { loadVoicePrompts, requiredPromptTexts } from './voice-prompts.mjs';
 
 const terminal = new Set(['completed', 'failed', 'busy', 'no-answer', 'canceled']);
 const phone = /^\+[1-9][0-9]{7,14}$/u;
 const ANSWER_PAUSE_SECONDS = 2; // Silence after pickup before the opening.
-const SAY = { language: 'de-DE', voice: 'Google.de-DE-Chirp3-HD-Charon' }; // Male, to match the Live voice `cedar`.
 const DIALOGUE_LIMIT = 40_000;
 const WRAP_UP_MS = 120_000;
 const NUDGE = 'Die Person hat auf die Frage noch nicht geantwortet. Fragen Sie kurz und freundlich nach, ob Sie gut zu hören sind, und wiederholen Sie die Frage sinngemäß in einem Satz.';
@@ -22,13 +22,21 @@ export class TelephonyError extends Error {
   constructor(message, status = 409) { super(message); this.status = status; }
 }
 
-export function createTelephony({ accountSid, authToken, fromNumber, publicBaseUrl, apiKey, region = 'ie1', edge = 'dublin', client = twilio(accountSid, authToken, { region, edge, autoRetry: false, timeout: 10_000 }), WebSocketImpl = WebSocket, maxDurationSeconds = 900, closeTimeoutMs = 10_000, startupTimeoutMs = 20_000, nudgeMs = 7_000, idleMs = 45_000, reportWaitMs = 20_000, onState = () => {}, onSuppression = () => {}, onFinished = () => {} } = {}) {
+export function createTelephony({ accountSid, authToken, fromNumber, publicBaseUrl, apiKey, region = 'ie1', edge = 'dublin', client = twilio(accountSid, authToken, { region, edge, autoRetry: false, timeout: 10_000 }), WebSocketImpl = WebSocket, maxDurationSeconds = 900, closeTimeoutMs = 10_000, startupTimeoutMs = 20_000, nudgeMs = 7_000, idleMs = 45_000, reportWaitMs = 20_000, prompts = loadVoicePrompts(), onState = () => {}, onSuppression = () => {}, onFinished = () => {} } = {}) {
   const base = new URL(publicBaseUrl);
   if (base.protocol !== 'https:' || base.username || base.password || base.search || base.hash || base.pathname !== '/') throw new Error('Public telephony URL must be an HTTPS origin.');
   if (!/^AC[a-fA-F0-9]{32}$/u.test(accountSid) || !authToken || !apiKey || !phone.test(fromNumber)) throw new Error('Invalid telephony configuration.');
   if (!Number.isInteger(maxDurationSeconds) || maxDurationSeconds < 1 || maxDurationSeconds > 1800) throw new Error('Invalid call duration.');
   const statusUrl = `${base.origin}/twilio/status`;
   const mediaUrl = `${base.origin.replace(/^https:/u, 'wss:')}/twilio/media`;
+  if (!requiredPromptTexts().every((text) => prompts.has(text))) throw new Error('Missing voice recordings for carrier prompts.');
+  const recordings = new Map([...prompts.values()].map((prompt) => [`/twilio/audio/${prompt.file}`, { data: prompt.data, etag: `"${createHash('sha256').update(prompt.data).digest('hex').slice(0, 16)}"` }]));
+  // Carrier-side sentences are recordings of the Live voice; an unrecorded text is a bug, not a reason for a second voice.
+  const play = (xml, text) => {
+    const prompt = prompts.get(text);
+    if (!prompt) throw new Error('No recording for carrier prompt.');
+    xml.play(`${base.origin}/twilio/audio/${prompt.file}`);
+  };
   let current = null;
   let shuttingDown = false;
   const snapshot = (call) => call ? { id: call.id, customerId: call.customerId, topicId: call.topicId, permission: call.permission, ...(call.callSid ? { callSid: call.callSid } : {}), state: call.state, liveState: call.liveState, finalized: call.phoneEnded && ['not-started', 'closed'].includes(call.liveState), startedAt: call.startedAt, ...(call.usage ? { usage: call.usage } : {}), ...(call.liveDropped ? { liveDropped: true } : {}) } : null;
@@ -121,9 +129,9 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
     if (typeof customerId !== 'string' || !customerId || typeof mobile !== 'string' || !phone.test(mobile) || mobile === fromNumber) throw new TelephonyError('Invalid customer destination.', 400);
     openingForTopic(topicId); // Validate the server-approved topic before any paid operation.
     const call = { id: randomUUID(), customerId, topicId, permission: 'pending', permissionAttempt: 0, permissionGate: new ConversationGate(topicId), state: 'dialing', liveState: 'not-started', startedAt: new Date().toISOString(), nonce: randomBytes(32).toString('hex'), phoneEnded: false, dialogue: [], dialogueLength: 0, summaryAllowed: true };
+    const xml = permissionPrompt(call, openingForTopic(topicId), ANSWER_PAUSE_SECONDS);
     current = call;
     publish(call); // Durable reservation must succeed before the paid request.
-    const xml = permissionPrompt(call, openingForTopic(topicId), ANSWER_PAUSE_SECONDS);
     remember(call, 'agent', openingForTopic(topicId));
     call.creation = (async () => {
       try {
@@ -149,7 +157,7 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
   function permissionPrompt(call, message, pauseSeconds = 0) {
     const xml = new twilio.twiml.VoiceResponse();
     if (pauseSeconds) xml.pause({ length: pauseSeconds });
-    xml.say(SAY, message);
+    play(xml, message);
     xml.gather({ input: 'speech', language: 'de-DE', speechTimeout: 'auto', timeout: 7, actionOnEmptyResult: true, method: 'POST', action: `${base.origin}/twilio/permission?attempt=${call.permissionAttempt}` });
     xml.hangup();
     return xml;
@@ -157,6 +165,14 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
 
   const gateway = http.createServer({ requestTimeout: 10_000, headersTimeout: 10_000 }, async (request, response) => {
     const respond = (code) => { response.writeHead(code, { 'Cache-Control': 'no-store' }); response.end(); };
+    // Public, fixed recordings of the opening sentences; Twilio does not sign <Play> fetches.
+    const recording = recordings.get(request.url);
+    // Per the <Play> docs, an ETag lets Twilio cache; no-cache makes it revalidate after a re-recording.
+    if (recording && ['GET', 'HEAD'].includes(request.method)) {
+      if (request.headers['if-none-match'] === recording.etag) { response.writeHead(304, { ETag: recording.etag, 'Cache-Control': 'no-cache' }); return response.end(); }
+      response.writeHead(200, { 'Content-Type': 'audio/wav', 'Content-Length': recording.data.length, ETag: recording.etag, 'Cache-Control': 'no-cache' });
+      return response.end(request.method === 'HEAD' ? undefined : recording.data);
+    }
     const permissionRequest = /^\/twilio\/permission\?attempt=[01]$/u.test(request.url ?? '');
     if (request.method !== 'POST' || (request.url !== '/twilio/status' && !permissionRequest)) return respond(404);
     if (request.headers['content-type']?.split(';')[0] !== 'application/x-www-form-urlencoded') return respond(415);
@@ -182,20 +198,20 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
         if (result.action === 'consent_granted' && result.mayDiscussProduct) {
           call.permission = 'granted';
           xml = new twilio.twiml.VoiceResponse();
-          // Answer the consent at once in the opening voice; Live connects while this is spoken.
-          xml.say(SAY, result.message);
+          // Answer the consent at once with the recorded Live voice; Live connects while this plays.
+          play(xml, result.message);
           remember(call, 'agent', result.message);
           const stream = xml.connect().stream({ url: mediaUrl });
           stream.parameter({ name: 'reservation', value: call.nonce });
           xml.hangup();
         } else if (result.action !== 'end' && attempt === 0) {
           call.permissionAttempt = 1;
-          xml = permissionPrompt(call, result.message || `Darf ich mit Ihnen über ${topicName(call.topicId)} sprechen? Bitte antworten Sie mit Ja oder Nein.`);
+          xml = permissionPrompt(call, result.message);
         } else {
           call.permission = 'denied';
           if (result.suppressContact) onSuppression(call.customerId);
           xml = new twilio.twiml.VoiceResponse();
-          xml.say(SAY, 'Selbstverständlich. Vielen Dank für Ihre Zeit. Ich wünsche Ihnen einen schönen Tag. Auf Wiederhören.');
+          play(xml, GOODBYE);
           xml.hangup();
         }
         publish(call);

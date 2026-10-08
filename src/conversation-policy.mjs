@@ -94,12 +94,16 @@ export function objectsToSummary(text) {
   return /\b(?:nicht|keine|kein)\b.{0,30}\b(?:aufschreiben|aufzeichnen|notieren|festhalten|zusammenfassung|mitschreiben|protokoll\w*)\b/u.test(normalize(text));
 }
 
-const GOODBYE = 'Selbstverständlich. Vielen Dank für Ihre Zeit. Ich wünsche Ihnen einen schönen Tag. Auf Wiederhören.';
+export const GOODBYE = 'Selbstverständlich. Vielen Dank für Ihre Zeit. Ich wünsche Ihnen einen schönen Tag. Auf Wiederhören.';
 const AFFIRMATIVE = new Set([
   'ja', 'ja gerne', 'ja gern', 'ja bitte', 'ja natürlich', 'ja selbstverständlich',
   'gerne', 'gern', 'einverstanden', 'ich stimme zu', 'ja ich stimme zu',
   'ja das dürfen sie', 'sie dürfen', 'ja legen sie los', 'selbstverständlich', 'natürlich',
 ]);
+const consentReply = (topicId) => `Vielen Dank. ${discoveryQuestion(topicId)}`;
+const clarification = (topicId, identity) => `${identity ? 'Ich bin ein KI-Assistent, erstellt von Werner. ' : ''}Darf ich das als Zustimmung zu einem kurzen Gespräch über ${topicName(topicId)} verstehen?`;
+// Every message the gate can return for a topic, besides GOODBYE (pre-recorded for the phone).
+export const permissionMessages = (topicId) => [consentReply(topicId), clarification(topicId, false), clarification(topicId, true)];
 function normalize(text) {
   return text.normalize('NFKC').toLocaleLowerCase('de-AT')
     .replace(/[.,!?;:„“"'…]/gu, ' ').replace(/\s+/gu, ' ').trim();
@@ -108,10 +112,9 @@ function normalize(text) {
 export class ConversationGate {
   #state = 'waits_for_permission';
   #clarified = false;
-  #topic;
   #topicId;
 
-  constructor(topicId = 'hpe-private-cloud-ai') { this.#topic = topicName(topicId); this.#topicId = topicId; }
+  constructor(topicId = 'hpe-private-cloud-ai') { topicName(topicId); this.#topicId = topicId; }
   get state() { return this.#state; }
   get mayDiscussProduct() { return this.#state === 'product_discussion'; }
 
@@ -125,9 +128,7 @@ export class ConversationGate {
   #clarify(identity = false) {
     if (this.#clarified) return this.#end(false, 'unclear_twice');
     this.#clarified = true;
-    const introduction = identity ? 'Ich bin ein KI-Assistent, erstellt von Werner. ' : '';
-    return this.#result(identity ? 'identity' : 'clarify_permission',
-      `${introduction}Darf ich das als Zustimmung zu einem kurzen Gespräch über ${this.#topic} verstehen?`);
+    return this.#result(identity ? 'identity' : 'clarify_permission', clarification(this.#topicId, identity));
   }
 
   handleTranscript(text) {
@@ -145,7 +146,7 @@ export class ConversationGate {
     if (/\b(?:nein|nicht|keinesfalls|niemals)\b/u.test(value)) return this.#end(false, 'negation');
     if (AFFIRMATIVE.has(value)) {
       this.#state = 'product_discussion';
-      return this.#result('consent_granted', `Vielen Dank. ${discoveryQuestion(this.#topicId)}`);
+      return this.#result('consent_granted', consentReply(this.#topicId));
     }
     const identity = /\b(?:wer sind sie|wer spricht|sind sie ein mensch|sind sie eine ki|sind sie ein roboter)\b/u.test(value);
     return this.#clarify(identity);

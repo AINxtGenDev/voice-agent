@@ -19,7 +19,9 @@ Die vom Nutzer gewünschte Bezeichnung lautet **„HPE Sprachassistent, erstellt
 
 Erste gesprochene Äußerung für das Startthema:
 
-> Guten Tag! Ich bin der HPE Sprachassistent, erstellt von Werner, und ein KI-Assistent. Das Gespräch halte ich danach in einer kurzen schriftlichen Zusammenfassung fest. Darf ich mit Ihnen ein Gespräch zum Thema HPE Private Cloud AI führen?
+> Guten Tag! Ich bin der HPE KI-Sprachassistent, erstellt von Werner. Darf ich mit Ihnen ein Gespräch zum Thema HPE Private Cloud AI führen? Sagen Sie bitte „Ja“, um das Gespräch zu starten.
+
+Kürzung auf Wunsch des Betreibers (2026-10-08): Der Hinweis auf die schriftliche Zusammenfassung entfällt in der Begrüßung; der Bericht wird weiterhin erstellt. Offen: ob die Information nach DSGVO Art. 13 an anderer Stelle erfolgen muss.
 
 Das Thema wird aus der freigegebenen serverseitigen Themenliste eingesetzt. Anschließend wartet der Agent auf die Antwort. Keine Produktpräsentation und keine Bedarfsfragen vor der Zustimmung.
 

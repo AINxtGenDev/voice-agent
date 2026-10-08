@@ -5,6 +5,8 @@ import http from 'node:http';
 import twilio from 'twilio';
 import WebSocket from 'ws';
 import { createTelephony } from '../src/telephony.mjs';
+import { GOODBYE, openingForTopic, permissionMessages } from '../src/conversation-policy.mjs';
+import { loadVoicePrompts, promptFile, requiredPromptTexts } from '../src/voice-prompts.mjs';
 
 const accountSid = `AC${'a'.repeat(32)}`;
 const callSid = `CA${'b'.repeat(32)}`;
@@ -22,13 +24,16 @@ class PendingLive extends EventEmitter {
   terminate() { if (this.readyState === 3) return; this.readyState = 3; this.emit('close', 1006, Buffer.alloc(0)); }
   open() { this.readyState = 1; this.emit('open'); }
 }
+// Stand-in recordings; the committed ones are checked separately.
+const prompts = new Map(requiredPromptTexts().map(text => [text, { file: promptFile(text), data: Buffer.from(`wav:${text}`) }]));
+const playUrl = (text) => `https://voice.example/twilio/audio/${promptFile(text)}`;
 function fixture(overrides = {}) {
   let request;
   let hangups = 0;
   const calls = () => ({ async update() { hangups++; return { status: 'completed' }; } });
   calls.create = async (options) => { request = options; return { sid: callSid }; };
   const client = { calls };
-  const app = createTelephony({ accountSid, authToken, publicBaseUrl, fromNumber: '+436641234568', apiKey: 'test-key', client, closeTimeoutMs: 20, WebSocketImpl: PendingLive, ...overrides });
+  const app = createTelephony({ accountSid, authToken, publicBaseUrl, fromNumber: '+436641234568', apiKey: 'test-key', client, closeTimeoutMs: 20, WebSocketImpl: PendingLive, prompts, ...overrides });
   return { app, client, request: () => request, hangups: () => hangups };
 }
 
@@ -41,10 +46,9 @@ test('outbound reservation prevents concurrent dial; carrier duration and signed
     assert.equal(f.request().timeLimit, 900);
     assert.equal(f.request().timeout, 20);
     assert.equal(f.request().statusCallback, 'https://voice.example/twilio/status');
-    assert.match(f.request().twiml, /<Response><Pause length="2"\/><Say[^>]*>Guten Tag/u);
-    assert.match(f.request().twiml, /<Say language="de-DE" voice="Google\.de-DE-Chirp3-HD-Charon">/u);
+    assert.ok(f.request().twiml.startsWith(`<?xml version="1.0" encoding="UTF-8"?><Response><Pause length="2"/><Play>${playUrl(openingForTopic())}</Play><Gather`));
+    assert.doesNotMatch(f.request().twiml, /<Say/u);
     assert.match(f.request().twiml, /<Gather[^>]*speechTimeout="auto"/u);
-    assert.match(f.request().twiml, /erstellt von Werner/u);
     assert.doesNotMatch(f.request().twiml, /<Stream/u);
     assert.equal(f.app.status().call.finalized, false);
     await f.app.stop();
@@ -247,7 +251,7 @@ test('consent is answered at once while Live starts in parallel; agent audio bef
     await f.app.start(destination);
     const consent = await permission(port, 'Ja');
     // The thanks and first question are spoken before the stream connects.
-    assert.match(consent.body, /<Response><Say[^>]*>Vielen Dank\. Darf ich zuerst fragen[^<]*<\/Say><Connect><Stream/u);
+    assert.ok(consent.body.includes(`<Response><Play>${playUrl(permissionMessages('hpe-private-cloud-ai')[0])}</Play><Connect><Stream`));
     await delay();
     assert.equal(MockLive.instances.length, 1);
     assert.equal(f.app.status().call.liveState, 'active');
@@ -341,12 +345,56 @@ test('refusal never opens media; silence and ambiguity receive at most one clari
       await f.app.start(destination);
       let result = await permission(port, speech);
       assert.doesNotMatch(result.body, /<Stream/);
-      if (/<Gather/.test(result.body)) result = await permission(port, null, { attempt: 1 });
-      assert.match(result.body, /<Hangup/);
+      if (/<Gather/.test(result.body)) {
+        assert.ok(permissionMessages('hpe-private-cloud-ai').slice(1).some(text => result.body.includes(`<Play>${playUrl(text)}</Play><Gather`)));
+        result = await permission(port, null, { attempt: 1 });
+      }
+      assert.ok(result.body.includes(`<Play>${playUrl(GOODBYE)}</Play><Hangup/>`));
+      assert.doesNotMatch(result.body, /<Say/);
       assert.doesNotMatch(result.body, /<Gather|<Stream/);
       assert.equal(f.app.status().call.permission, 'denied');
       assert.equal(f.app.status().call.liveState, 'not-started');
     } finally { await f.app.shutdown(); }
+  }
+});
+
+test('carrier prompts are Live-voice recordings served unsigned, and only the known files', async () => {
+  const f = fixture();
+  const port = await listen(f.app);
+  const get = (path, method = 'GET') => new Promise((resolve, reject) => {
+    http.request({ hostname: '127.0.0.1', port, path, method }, (res) => { const chunks = []; res.on('data', c => chunks.push(c)); res.on('end', () => resolve({ status: res.statusCode, type: res.headers['content-type'], etag: res.headers.etag, cache: res.headers['cache-control'], body: Buffer.concat(chunks).toString() })); }).on('error', reject).end();
+  });
+  try {
+    const opening = await get(`/twilio/audio/${promptFile(openingForTopic())}`);
+    assert.equal(opening.status, 200);
+    assert.equal(opening.type, 'audio/wav');
+    assert.equal(opening.body, `wav:${openingForTopic()}`);
+    assert.equal((await get(`/twilio/audio/${promptFile(GOODBYE)}`, 'HEAD')).status, 200);
+    assert.equal(opening.cache, 'no-cache');
+    const revalidated = await new Promise((resolve, reject) => http.request({ hostname: '127.0.0.1', port, path: `/twilio/audio/${promptFile(openingForTopic())}`, headers: { 'If-None-Match': opening.etag } }, (res) => { res.resume(); resolve(res.statusCode); }).on('error', reject).end());
+    assert.equal(revalidated, 304);
+    assert.equal((await get('/twilio/audio/0000000000000000.wav')).status, 404);
+    assert.equal((await get(`/twilio/audio/${promptFile(GOODBYE)}`, 'POST')).status, 404);
+    assert.equal((await get('/twilio/audio/../voice-prompts.mjs')).status, 404);
+  } finally { await f.app.shutdown(); }
+  // Fail closed: no recordings, no telephony (a second voice is never substituted).
+  assert.throws(() => createTelephony({ accountSid, authToken, publicBaseUrl, fromNumber: '+436641234568', apiKey: 'test-key', client: {}, prompts: loadVoicePrompts(new URL('file:///nonexistent/')) }), /Missing voice recordings/);
+  const incomplete = new Map(prompts); incomplete.delete(GOODBYE);
+  assert.throws(() => createTelephony({ accountSid, authToken, publicBaseUrl, fromNumber: '+436641234568', apiKey: 'test-key', client: {}, prompts: incomplete }), /Missing voice recordings/);
+});
+
+test('every carrier prompt has a committed recording in the expected format', () => {
+  const recorded = loadVoicePrompts();
+  assert.equal(recorded.size, requiredPromptTexts().length);
+  for (const { data } of recorded.values()) {
+    assert.equal(data.toString('ascii', 0, 4), 'RIFF');
+    assert.equal(data.readUInt16LE(20), 7); // μ-law
+    assert.equal(data.readUInt32LE(24), 8000);
+    assert.ok(data.length > 58 + 8000, 'at least one second of audio');
+    assert.equal(data.readUInt32LE(4), data.length - 8);
+    assert.equal(data.readUInt32LE(16), 18);
+    assert.equal(data.readUInt32LE(54), data.length - 58);
+    assert.equal(data.readUInt32LE(46), data.length - 58);
   }
 });
 
