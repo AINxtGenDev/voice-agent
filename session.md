@@ -1,52 +1,50 @@
 # Session Status
 
-Updated: 2026-10-06 (Europe/Vienna).
+Updated: 2026-10-08 (Europe/Vienna).
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
-## Resume Here — 2026-10-06 (end of session)
+## Resume Here — 2026-10-08
 
-**State:** everything is committed, pushed and deployed. The server runs the latest code (contact refresh `2200c52`, call changes `13d0d2d`) with `MAX_CALL_SECONDS=900`. Re-verified after deployment:
-- container settings and served UI script are current;
+**State:** committed, pushed and deployed (`5d3234f`). Re-verified on the server after deployment:
+- 13 recordings are in the container;
+- `MAX_CALL_SECONDS=900`;
 - telephony configured, no call reserved;
 - UI without login 401, unsigned callback 403;
-- the API returns all four saved contacts.
+- the opening recording is served through Caddy (200, `audio/wav`, ETag, byte-identical to Git); an unknown clip returns 404.
 
-No work in progress; no call running. Offline suite: 95/95 passing.
-- The user's own uncommitted files (logo files, `TWILIO_SETUP.md`, `00-prompt.txt`) are intentionally not committed.
-- `NEXT_STEPS.md` was committed by mistake in `f43109e` (documentation wording only, no secrets); the user has not yet decided whether to revert it.
+Offline suite: 98/98 passing. The user's own untracked files (logo files, `TWILIO_SETUP.md`, `00-prompt.txt`) stay uncommitted.
 
-**Working method requested by the operator:** after each change, a critical review subagent checks it against best practices. Confirmed findings are fixed with tests, then the session record is updated, committed and pushed. Production deploys still need explicit approval.
+**Working method:** after each change, a critical review subagent checks it, findings are fixed with tests, then this record is updated, committed and pushed. Production deploys need explicit approval.
 
 **Next steps (pending the operator):**
+1. Test call (needs authorization). Listen for:
+   - one voice (`cedar`) from the greeting to the goodbye;
+   - the new short opening.
+   Also confirm that Twilio fetches and plays the `<Play>` recordings over port 10556. This is unverified: only callbacks and Media Streams were tested on that port. The fallback is forwarding external 443.
+2. GDPR decision: the opening no longer tells callers about the written summary, but a report is still written (see below).
+3. Earlier open items: Live drops (cause unknown), reliability of spoken e-mail addresses, upload of the `hpe-quickspecs` skill.
 
-1. Test call (needs authorization) to hear:
-   - the immediate „Vielen Dank" + first question after „Ja";
-   - that the agent does not repeat the question;
-   - the 7 s silence nudge;
-   - a call longer than 5 minutes with the gentle wrap-up two minutes before 15 minutes.
-   Log events to watch: `permission.result`, `live.open` (now before `media.start`), `live.silence_nudge`, `idle_hangup`, `live.audio_before_stream_dropped`.
-2. Confirm on the laptop that saved contacts appear (reload once; afterwards the list refreshes on its own).
-3. Possible improvement from the review: connect the stream first and play a pre-rendered clip of the thanks and question for each topic, so an early answer is not clipped.
-4. Whether the speech-recognized e-mail in reports is reliable (an earlier test produced a placeholder-like address).
+## One Voice for the Whole Call and Shorter Opening — 2026-10-08
 
-**Where it runs:** Docker on a private home server behind Caddy at `https://voicehpe.duckdns.org:10556` (password-protected UI; only signature-checked `/twilio/*` is public). Reboot-tested. The temporary tunnel and GitHub Pages are no longer used. Update with `git pull && docker compose up -d --build` in `deploy/`. Private operational details (host access, secret locations, config backups) are kept outside the repository.
-
-**Current capabilities:**
-
-- Telephone calls via Twilio IE1:
-  - a 2-second pause after pickup, then the spoken AI disclosure and permission gate;
-  - after „Ja", the opening voice immediately thanks the caller and asks the first question while GPT-Live (voice `cedar`, Responses delegation to `gpt-5.6-terra`) connects in parallel;
-  - calls last up to 15 minutes by default, with a wrap-up two minutes before the end;
-  - a silent caller gets one nudge after 7 s, and a line with no speech from either side ends after 45 s.
-- Senior-consultant conversation style (discovery-led, one question at a time, objection handling, cross-solution links). The selected topic leads; other products join only when named. No references or installation claims until approved ones exist.
-- Goal: a follow-up meeting with HPE experts (preferred times, online/on-site, interest, e-mail spelled back). A private Markdown report is written after each call.
-- Three topics with 41 reviewed, page-cited QuickSpecs facts plus curated product-page and service-description facts.
-- Contacts are stored in the server database. The UI re-reads them on focus or visibility, on back/forward-cache restore, and every 30 s.
-
-**Verified 2026-09-29:** Twilio accepts port 10556 for callbacks and Media Streams; `gpt-live-1` speaks with `cedar`. **Verified 2026-10-05:** calls continue after „Ja" (stream-start race fixed, `652d8a4`); 3.5-minute dialogue with report. **Open:** the Live connection dropped mid-call in 2 of 4 earlier calls (code 1006; not seen 2026-10-05 or 2026-10-06); drops no longer block calling, but the cause is unknown.
-
-**Outside this repository:** the repaired `hpe-quickspecs` skill still has to be uploaded to claude.ai.
+- Operator feedback from a test call with a colleague (2026-10-07): the greeting voice (Twilio `<Say>`, `Google.de-DE-Chirp3-HD-Charon`) was unsatisfying. The Live voice in the conversation (`cedar`) sounded much more natural. Requirement: only that voice, from greeting to goodbye, with no switching.
+- Fix (`5d3234f`): every sentence Twilio speaks before Live takes over is now a recording made with the Live model and voice itself (`gpt-live-1`, `cedar`, 8 kHz μ-law WAV) and played with `<Play>`. That covers 13 sentences: the opening, the consent reply with its first question, and two clarifications for each of the 3 topics, plus the goodbye.
+  - `scripts/render-voice-prompts.mjs` records the sentences. It keeps a recording only if Live's own transcript matches the text word for word; all 13 passed (one needed a retry).
+  - Recording file names are a hash of the text. A wording change therefore needs a new recording, and telephony refuses to start while any recording is missing (fail closed, no fallback to a second voice).
+  - The gateway serves the recordings without a signature at `/twilio/audio/<hash>.wav`, because Twilio does not send its standard parameters on `<Play>` fetches ([TwiML Play](https://www.twilio.com/docs/voice/twiml/play), reviewed 2026-10-08). It serves only the known files, with an ETag and `no-cache`, so Twilio can cache and revalidate.
+- Learned: GPT-Live keeps streaming silent output audio until the session closes and sends no "audio done" event (as the [voice WebSockets guide](https://developers.openai.com/api/docs/guides/voice-websockets) says). The first recording run waited for a pause and timed out on every attempt. The script now ends GRACE_MS after the transcript is complete and trims the silence. Live usage for both runs was about 13 minutes, ≈ $0.66.
+- The opening was shortened at the operator's request (`5bc7bcb`) to: „Guten Tag! Ich bin der HPE KI-Sprachassistent, erstellt von Werner. Darf ich mit Ihnen ein Gespräch zum Thema … führen? Sagen Sie bitte ‚Ja', um das Gespräch zu starten." `HPE_AGENT_PLAN.md` is updated to match.
+  - **Open:** the notice about the written summary was dropped from the opening, but a report is still written and the objection path still exists. Whether callers must be informed elsewhere (GDPR Art. 13) is for the operator to decide.
+- Critical review subagent:
+  - Confirmed: valid WAV headers, 150 ms of silence at each end (no speech cut off), every text the gate can speak is covered, no path traversal.
+  - Findings fixed with tests:
+    - the startup error now names the missing recordings;
+    - a supplied recording set is checked when telephony starts;
+    - the call reservation is made only after the TwiML is built;
+    - ETag/304 replaces `immutable`;
+    - the WAV size fields are checked;
+    - a test ties every message the gate can speak to the recordings.
+- Not yet heard on a real call: whether Twilio plays μ-law inside WAV and fetches over port 10556, and how natural the recordings sound on the phone.
 
 ## Contacts Always From the Server Database — 2026-10-06
 
