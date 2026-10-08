@@ -17,13 +17,14 @@ Offline suite: 98/98 passing. The user's own untracked files (logo files, `TWILI
 
 **Working method:** after each change, a critical review subagent checks it, findings are fixed with tests, then this record is updated, committed and pushed. Production deploys need explicit approval.
 
+**Verified 2026-10-08 on a real call** (operator's own number, HPE Private Cloud AI, operator-run):
+- The operator reported the call as OK. Twilio fetched and played the `<Play>` recordings over port 10556.
+- Consent was granted on the first answer (confidence 0.80). The stream started 7.8 s later, after the recorded thanks and question, and Live spoke 0.8 s after that.
+- One delegation happened. The call ended at 220 s (Twilio `completed`) with `session.closed`, a clean finalize, and a report written.
+
 **Next steps (pending the operator):**
-1. Test call (needs authorization). Listen for:
-   - one voice (`cedar`) from the greeting to the goodbye;
-   - the new short opening.
-   Also confirm that Twilio fetches and plays the `<Play>` recordings over port 10556. This is unverified: only callbacks and Media Streams were tested on that port. The fallback is forwarding external 443.
-2. GDPR decision: the opening no longer tells callers about the written summary, but a report is still written (see below).
-3. Earlier open items: Live drops (cause unknown), reliability of spoken e-mail addresses, upload of the `hpe-quickspecs` skill.
+1. GDPR decision: the opening no longer tells callers about the written summary, but a report is still written (see below).
+2. Earlier open items: Live drops (cause unknown), reliability of spoken e-mail addresses, upload of the `hpe-quickspecs` skill.
 
 ## One Voice for the Whole Call and Shorter Opening — 2026-10-08
 
@@ -44,7 +45,7 @@ Offline suite: 98/98 passing. The user's own untracked files (logo files, `TWILI
     - ETag/304 replaces `immutable`;
     - the WAV size fields are checked;
     - a test ties every message the gate can speak to the recordings.
-- Not yet heard on a real call: whether Twilio plays μ-law inside WAV and fetches over port 10556, and how natural the recordings sound on the phone.
+- Verified on a real call the same day: Twilio plays the μ-law WAV recordings fetched over port 10556, and the operator reported the call as OK.
 
 ## Contacts Always From the Server Database — 2026-10-06
 
