@@ -15,7 +15,7 @@ export function topicName(topicId) {
 }
 
 export function openingForTopic(topicId = 'hpe-private-cloud-ai') {
-  return `Guten Tag! Ich bin der HPE Sprachassistent, erstellt von Werner, und ein KI-Assistent. Das Gespräch halte ich danach in einer kurzen schriftlichen Zusammenfassung fest. Darf ich mit Ihnen ein Gespräch zum Thema ${topicName(topicId)} führen? Sagen Sie bitte „Ja“, um das Gespräch zu starten.`;
+  return `Guten Tag! Ich bin der HPE KI-Sprachassistent, erstellt von Werner. Darf ich mit Ihnen ein Gespräch zum Thema ${topicName(topicId)} führen? Sagen Sie bitte „Ja“, um das Gespräch zu starten.`;
 }
 
 // First question after consent: start from the customer's situation, not from product features.

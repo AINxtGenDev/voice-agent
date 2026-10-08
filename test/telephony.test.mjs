@@ -419,7 +419,7 @@ test('finished call hands off carrier duration and dialogue once; objection drop
       } else {
         assert.equal(data.summaryAllowed, true);
         assert.deepEqual(data.dialogue.map(turn => turn.speaker), ['agent', 'customer', 'agent', 'customer']);
-        assert.match(data.dialogue[0].text, /schriftlichen Zusammenfassung/);
+        assert.match(data.dialogue[0].text, /KI-Sprachassistent, erstellt von Werner/);
         assert.equal(data.dialogue[1].text, 'Ja, gerne.');
         assert.equal(data.dialogue[3].text, 'Inferenz. Dienstag vormittags passt.');
       }
