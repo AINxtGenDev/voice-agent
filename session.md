@@ -32,6 +32,25 @@ Offline suite: 98/98 passing. The user's own untracked files (logo files, `TWILI
 - Model listing for the project key (`GET /v1/models`, HTTP 200, 141 models, run read-only in the app container) shows only `gpt-live-1` and `gpt-live-transcribe`; `gpt-live-1.1` is not listed. A third-party directory ([LLM Reference](https://www.llmreference.com/model/gpt-live-1.1), reviewed 2026-10-20) describes 1.1 as ChatGPT-only; no official OpenAI source was found.
 - A future switch would need the three model references changed, all 13 recordings re-rendered (same voice throughout), and a test call.
 
+## Cost per Call Minute — 2026-10-20
+
+Prices re-checked 2026-10-20; unchanged from [TELEPHONY_COSTS.md](TELEPHONY_COSTS.md). USD, before tax and number rental:
+
+| Component | Price | 1-minute call |
+| --- | --- | ---: |
+| Twilio outbound to an Austrian mobile, EEA caller ID | $0.0495/min | $0.0495 |
+| Twilio Media Streams | $0.0044/min | $0.0044 |
+| GPT-Live-1, billed per second | $0.05/min | $0.05 |
+| **Subtotal** | | **≈ $0.104** |
+| `gpt-5.6-terra` delegation and report | $2.00 input / $12.00 output per 1M tokens | not measured |
+
+- A non-EEA caller ID raises Twilio to $0.2730/min (≈ $0.33 per minute in total).
+- Twilio's page does not state its billing increment; whether it rounds up to whole minutes is unverified.
+- Live runs only after consent; the recorded opening uses only Twilio.
+- For scale: 5 minutes ≈ $0.52; the 220 s test call on 2026-10-08 ≈ $0.38, plus backend tokens.
+- **Open:** measure the real per-call total from Twilio's call record and OpenAI usage for one test call.
+- Sources: [OpenAI gpt-live-1](https://developers.openai.com/api/docs/models/gpt-live-1), [OpenAI pricing](https://developers.openai.com/api/docs/pricing), [Twilio Austria voice pricing](https://www.twilio.com/en-us/voice/pricing/at).
+
 ## One Voice for the Whole Call and Shorter Opening — 2026-10-08
 
 - Operator feedback from a test call with a colleague (2026-10-07): the greeting voice (Twilio `<Say>`, `Google.de-DE-Chirp3-HD-Charon`) was unsatisfying. The Live voice in the conversation (`cedar`) sounded much more natural. Requirement: only that voice, from greeting to goodbye, with no switching.
