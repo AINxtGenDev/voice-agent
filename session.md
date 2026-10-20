@@ -1,6 +1,6 @@
 # Session Status
 
-Updated: 2026-10-08 (Europe/Vienna).
+Updated: 2026-10-20 (Europe/Vienna).
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
@@ -25,6 +25,12 @@ Offline suite: 98/98 passing. The user's own untracked files (logo files, `TWILI
 **Next steps (pending the operator):**
 1. GDPR decision: the opening no longer tells callers about the written summary, but a report is still written (see below).
 2. Earlier open items: Live drops (cause unknown), reliability of spoken e-mail addresses, upload of the `hpe-quickspecs` skill.
+
+## GPT-Live 1.1 Availability Check — 2026-10-20
+
+- Question: does the agent use `gpt-live-1.1`? No. Telephony, the browser test and the prompt recordings all hardcode `gpt-live-1`.
+- Model listing for the project key (`GET /v1/models`, HTTP 200, 141 models, run read-only in the app container) shows only `gpt-live-1` and `gpt-live-transcribe`; `gpt-live-1.1` is not listed. A third-party directory ([LLM Reference](https://www.llmreference.com/model/gpt-live-1.1), reviewed 2026-10-20) describes 1.1 as ChatGPT-only; no official OpenAI source was found.
+- A future switch would need the three model references changed, all 13 recordings re-rendered (same voice throughout), and a test call.
 
 ## One Voice for the Whole Call and Shorter Opening — 2026-10-08
 
