@@ -55,6 +55,7 @@ Offline suite: 98/98 passing. The user's own untracked files (logo files, `TWILI
   - Consent on the first answer (confidence 0.76); Live session ready 2.2 s later; stream started 9.0 s after consent, as the 8.3 s recording finished; one delegation.
   - Ended from the phone side at 243 s (Twilio `completed`), with `session.closed`, a clean finalize and a report written. No errors and no Live drop.
   - Twilio still downloaded both recordings in full (200, 264 ms and 250 ms). This was expected on the first call: the URLs are new, so Twilio's cache was empty. The cache effect is still open, and the next call settles it.
+  - Operator feedback: the pause between „Ja“ and „Vielen Dank“ felt fine. No further change to the consent step is planned.
 - **Not yet verified:** whether Twilio actually serves from cache. The reviewer noted the old ETag never led to a 304 either; Twilio's cache proxies may simply be cold after only a few calls. **Next:** after the next 1–2 calls, read the call's request log for the audio fetch (`request_duration` well below 260 ms, or no fetch at all).
 
 ## Log Review: Two Clean Calls — checked 2026-11-03
