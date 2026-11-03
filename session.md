@@ -30,9 +30,9 @@ Offline suite: 98/98 passing. The user's own untracked files (logo files, `TWILI
    - Reliability of spoken e-mail addresses.
    - Upload of the `hpe-quickspecs` skill.
    - Measure the real per-call cost.
-4. After the next call: check in Twilio's request log whether the "Vielen Dank" recording was served from cache (the first call on the new URLs, 2026-11-03, still downloaded it).
+4. Optional: Twilio did not serve the recordings from its cache on two calls (2026-11-03). Twilio's own suggestion is to host the media in AWS S3 eu-west-1. That is not worth it while the pause feels fine.
 
-## Twilio May Cache the Recordings — 2026-11-03
+## Twilio May Cache the Recordings (No Cache Hit Observed) — 2026-11-03
 
 - **Goal:** a shorter wait after "Ja". Measured first, from Twilio's per-call request log for the last 3 calls:
   - the consent callback takes 241–270 ms;
@@ -56,7 +56,11 @@ Offline suite: 98/98 passing. The user's own untracked files (logo files, `TWILI
   - Ended from the phone side at 243 s (Twilio `completed`), with `session.closed`, a clean finalize and a report written. No errors and no Live drop.
   - Twilio still downloaded both recordings in full (200, 264 ms and 250 ms). This was expected on the first call: the URLs are new, so Twilio's cache was empty. The cache effect is still open, and the next call settles it.
   - Operator feedback: the pause between „Ja“ and „Vielen Dank“ felt fine. No further change to the consent step is planned.
-- **Not yet verified:** whether Twilio actually serves from cache. The reviewer noted the old ETag never led to a 304 either; Twilio's cache proxies may simply be cold after only a few calls. **Next:** after the next 1–2 calls, read the call's request log for the audio fetch (`request_duration` well below 260 ms, or no fetch at all).
+- **Second test call 2026-11-03 21:07, 6 minutes later** (same contact and topic, at the operator's request):
+  - Consent on the first answer (confidence 0.71); Live session ready 1.3 s later; 128 s; clean finalize, report written, no errors.
+  - **Cache result: no hit.** Twilio again downloaded both recordings in full (200, 325 ms and 250 ms, the same as the webhook round trips), although the same URLs had been fetched 6 minutes earlier.
+  - Possible causes (unverified): Twilio's fleet of caching proxies ("may take multiple requests before all of the proxies have a copy") or a cache that ignores `max-age`. The change stays in place: it is harmless and correct. With the operator satisfied with the pause, no further work is planned.
+  - The consent callback took 177 ms this time.
 
 ## Log Review: Two Clean Calls — checked 2026-11-03
 
