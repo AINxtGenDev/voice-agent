@@ -6,7 +6,13 @@ This is a public project status record. Keep credentials, customer information, 
 
 ## Resume Here — 2026-11-03
 
-**State:** `05bcc7a` (Twilio may cache the recordings) was deployed on 2026-11-03 and verified through the public URL; see below. The host came back on its own after a reboot on 2026-11-01. Two more real calls (2026-10-15, 2026-10-21) ran without errors. Re-verified on the server after the 2026-10-08 deployment:
+**State:** `05bcc7a` (Twilio may cache the recordings) was deployed on 2026-11-03 and verified through the public URL; see below.
+- Two test calls followed the same evening (243 s and 128 s). Both were clean, with no errors or Live drops. The operator found the pause after „Ja“ fine.
+- Twilio did not serve the recordings from its cache in either call, so the change saves nothing measurable yet.
+- The host came back on its own after a reboot on 2026-11-01.
+- Real calls since the last deployment: 2026-10-15, 2026-10-21 and the two on 2026-11-03, all without errors.
+
+Re-verified on the server after the 2026-10-08 deployment:
 - 13 recordings are in the container;
 - `MAX_CALL_SECONDS=900`;
 - telephony configured, no call reserved;
