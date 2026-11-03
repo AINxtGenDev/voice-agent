@@ -13,8 +13,11 @@ export function requiredPromptTexts() {
   return [...texts];
 }
 
-// The file name follows the text, so a wording change needs a new recording and busts Twilio's cache.
+// The file name on disk follows the text, so a wording change needs a new recording (the served URL follows the audio).
 export const promptFile = (text) => `${createHash('sha256').update(text).digest('hex').slice(0, 16)}.wav`;
+
+// The served URL names the audio itself, so it never changes content and Twilio may cache it for good.
+export const audioPath = (data) => `/twilio/audio/${createHash('sha256').update(data).digest('hex').slice(0, 16)}.wav`;
 
 export const DEFAULT_PROMPT_DIR = new URL('../voice/', import.meta.url);
 

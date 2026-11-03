@@ -6,7 +6,7 @@ import twilio from 'twilio';
 import WebSocket from 'ws';
 import { createTelephony } from '../src/telephony.mjs';
 import { GOODBYE, openingForTopic, permissionMessages } from '../src/conversation-policy.mjs';
-import { loadVoicePrompts, promptFile, requiredPromptTexts } from '../src/voice-prompts.mjs';
+import { audioPath, loadVoicePrompts, promptFile, requiredPromptTexts } from '../src/voice-prompts.mjs';
 
 const accountSid = `AC${'a'.repeat(32)}`;
 const callSid = `CA${'b'.repeat(32)}`;
@@ -26,7 +26,7 @@ class PendingLive extends EventEmitter {
 }
 // Stand-in recordings; the committed ones are checked separately.
 const prompts = new Map(requiredPromptTexts().map(text => [text, { file: promptFile(text), data: Buffer.from(`wav:${text}`) }]));
-const playUrl = (text) => `https://voice.example/twilio/audio/${promptFile(text)}`;
+const playUrl = (text) => `https://voice.example${audioPath(prompts.get(text).data)}`;
 function fixture(overrides = {}) {
   let request;
   let hangups = 0;
@@ -362,19 +362,28 @@ test('carrier prompts are Live-voice recordings served unsigned, and only the kn
   const f = fixture();
   const port = await listen(f.app);
   const get = (path, method = 'GET') => new Promise((resolve, reject) => {
-    http.request({ hostname: '127.0.0.1', port, path, method }, (res) => { const chunks = []; res.on('data', c => chunks.push(c)); res.on('end', () => resolve({ status: res.statusCode, type: res.headers['content-type'], etag: res.headers.etag, cache: res.headers['cache-control'], body: Buffer.concat(chunks).toString() })); }).on('error', reject).end();
+    http.request({ hostname: '127.0.0.1', port, path, method }, (res) => { const chunks = []; res.on('data', c => chunks.push(c)); res.on('end', () => resolve({ status: res.statusCode, type: res.headers['content-type'], etag: res.headers.etag, cache: res.headers['cache-control'], modified: res.headers['last-modified'], body: Buffer.concat(chunks).toString() })); }).on('error', reject).end();
   });
   try {
-    const opening = await get(`/twilio/audio/${promptFile(openingForTopic())}`);
+    const openingPath = audioPath(prompts.get(openingForTopic()).data);
+    const opening = await get(openingPath);
     assert.equal(opening.status, 200);
     assert.equal(opening.type, 'audio/wav');
     assert.equal(opening.body, `wav:${openingForTopic()}`);
-    assert.equal((await get(`/twilio/audio/${promptFile(GOODBYE)}`, 'HEAD')).status, 200);
-    assert.equal(opening.cache, 'no-cache');
-    const revalidated = await new Promise((resolve, reject) => http.request({ hostname: '127.0.0.1', port, path: `/twilio/audio/${promptFile(openingForTopic())}`, headers: { 'If-None-Match': opening.etag } }, (res) => { res.resume(); resolve(res.statusCode); }).on('error', reject).end());
-    assert.equal(revalidated, 304);
+    assert.equal((await get(audioPath(prompts.get(GOODBYE).data), 'HEAD')).status, 200);
+    // The URL names the audio itself, so Twilio may keep it without asking again.
+    assert.equal(opening.cache, 'public, max-age=31536000, immutable');
+    const revalidated = await new Promise((resolve, reject) => http.request({ hostname: '127.0.0.1', port, path: openingPath, headers: { 'If-None-Match': opening.etag } }, (res) => { res.resume(); resolve({ status: res.statusCode, cache: res.headers['cache-control'] }); }).on('error', reject).end());
+    assert.deepEqual(revalidated, { status: 304, cache: 'public, max-age=31536000, immutable' });
+    assert.equal(opening.modified, 'Thu, 08 Oct 2026 00:00:00 GMT');
+    const conditional = (headers) => new Promise((resolve, reject) => http.request({ hostname: '127.0.0.1', port, path: openingPath, headers }, (res) => { res.resume(); resolve(res.statusCode); }).on('error', reject).end());
+    assert.equal(await conditional({ 'If-Modified-Since': opening.modified }), 304);
+    assert.equal(await conditional({ 'If-Modified-Since': 'Wed, 07 Oct 2026 00:00:00 GMT' }), 200);
+    assert.equal(await conditional({ 'If-None-Match': '"0000000000000000"', 'If-Modified-Since': opening.modified }), 200, 'a mismatching ETag wins over the date');
+    for (const [text, { data }] of prompts) assert.equal((await get(audioPath(data))).body, `wav:${text}`);
+    assert.equal((await get(`/twilio/audio/${promptFile(openingForTopic())}`)).status, 404, 'text-named URLs are gone');
     assert.equal((await get('/twilio/audio/0000000000000000.wav')).status, 404);
-    assert.equal((await get(`/twilio/audio/${promptFile(GOODBYE)}`, 'POST')).status, 404);
+    assert.equal((await get(audioPath(prompts.get(GOODBYE).data), 'POST')).status, 404);
     assert.equal((await get('/twilio/audio/../voice-prompts.mjs')).status, 404);
   } finally { await f.app.shutdown(); }
   // Fail closed: no recordings, no telephony (a second voice is never substituted).
@@ -386,6 +395,7 @@ test('carrier prompts are Live-voice recordings served unsigned, and only the kn
 test('every carrier prompt has a committed recording in the expected format', () => {
   const recorded = loadVoicePrompts();
   assert.equal(recorded.size, requiredPromptTexts().length);
+  assert.equal(new Set([...recorded.values()].map(({ data }) => audioPath(data))).size, recorded.size, 'each recording has its own URL');
   for (const { data } of recorded.values()) {
     assert.equal(data.toString('ascii', 0, 4), 'RIFF');
     assert.equal(data.readUInt16LE(20), 7); // μ-law

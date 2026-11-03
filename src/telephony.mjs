@@ -4,7 +4,7 @@ import twilio from 'twilio';
 import WebSocket, { WebSocketServer } from 'ws';
 import { openingForTopic, GOODBYE, buildConversationInstructions, buildBackendInstructions, objectsToSummary, BACKEND_MODEL, KNOWLEDGE_TOOL, ConversationGate } from './conversation-policy.mjs';
 import { createLiveConversation } from './live-conversation.mjs';
-import { loadVoicePrompts, requiredPromptTexts } from './voice-prompts.mjs';
+import { audioPath, loadVoicePrompts, requiredPromptTexts } from './voice-prompts.mjs';
 
 const terminal = new Set(['completed', 'failed', 'busy', 'no-answer', 'canceled']);
 const phone = /^\+[1-9][0-9]{7,14}$/u;
@@ -22,6 +22,8 @@ export class TelephonyError extends Error {
   constructor(message, status = 409) { super(message); this.status = status; }
 }
 
+const AUDIO_LAST_MODIFIED = 'Thu, 08 Oct 2026 00:00:00 GMT';
+
 export function createTelephony({ accountSid, authToken, fromNumber, publicBaseUrl, apiKey, region = 'ie1', edge = 'dublin', client = twilio(accountSid, authToken, { region, edge, autoRetry: false, timeout: 10_000 }), WebSocketImpl = WebSocket, maxDurationSeconds = 900, closeTimeoutMs = 10_000, startupTimeoutMs = 20_000, nudgeMs = 7_000, idleMs = 45_000, reportWaitMs = 20_000, prompts = loadVoicePrompts(), onState = () => {}, onSuppression = () => {}, onFinished = () => {} } = {}) {
   const base = new URL(publicBaseUrl);
   if (base.protocol !== 'https:' || base.username || base.password || base.search || base.hash || base.pathname !== '/') throw new Error('Public telephony URL must be an HTTPS origin.');
@@ -30,12 +32,12 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
   const statusUrl = `${base.origin}/twilio/status`;
   const mediaUrl = `${base.origin.replace(/^https:/u, 'wss:')}/twilio/media`;
   if (!requiredPromptTexts().every((text) => prompts.has(text))) throw new Error('Missing voice recordings for carrier prompts.');
-  const recordings = new Map([...prompts.values()].map((prompt) => [`/twilio/audio/${prompt.file}`, { data: prompt.data, etag: `"${createHash('sha256').update(prompt.data).digest('hex').slice(0, 16)}"` }]));
+  const recordings = new Map([...prompts.values()].map((prompt) => [audioPath(prompt.data), { data: prompt.data, etag: `"${createHash('sha256').update(prompt.data).digest('hex').slice(0, 16)}"` }]));
   // Carrier-side sentences are recordings of the Live voice; an unrecorded text is a bug, not a reason for a second voice.
   const play = (xml, text) => {
     const prompt = prompts.get(text);
     if (!prompt) throw new Error('No recording for carrier prompt.');
-    xml.play(`${base.origin}/twilio/audio/${prompt.file}`);
+    xml.play(`${base.origin}${audioPath(prompt.data)}`);
   };
   let current = null;
   let shuttingDown = false;
@@ -167,10 +169,15 @@ export function createTelephony({ accountSid, authToken, fromNumber, publicBaseU
     const respond = (code) => { response.writeHead(code, { 'Cache-Control': 'no-store' }); response.end(); };
     // Public, fixed recordings of the opening sentences; Twilio does not sign <Play> fetches.
     const recording = recordings.get(request.url);
-    // Per the <Play> docs, an ETag lets Twilio cache; no-cache makes it revalidate after a re-recording.
+    // The URL is a hash of the audio, so its content never changes: Twilio may keep it instead of downloading
+    // it (~0.3 s) on every call. The <Play> docs name ETag, Last-Modified and Cache-Control, but not max-age.
+    // Last-Modified is fixed because a URL's content never changes; it must not move with restarts.
     if (recording && ['GET', 'HEAD'].includes(request.method)) {
-      if (request.headers['if-none-match'] === recording.etag) { response.writeHead(304, { ETag: recording.etag, 'Cache-Control': 'no-cache' }); return response.end(); }
-      response.writeHead(200, { 'Content-Type': 'audio/wav', 'Content-Length': recording.data.length, ETag: recording.etag, 'Cache-Control': 'no-cache' });
+      const headers = { ETag: recording.etag, 'Last-Modified': AUDIO_LAST_MODIFIED, 'Cache-Control': 'public, max-age=31536000, immutable' };
+      const inm = request.headers['if-none-match'];
+      const ims = Date.parse(request.headers['if-modified-since'] ?? '');
+      if (inm === recording.etag || (inm === undefined && ims >= Date.parse(AUDIO_LAST_MODIFIED))) { response.writeHead(304, headers); return response.end(); }
+      response.writeHead(200, { 'Content-Type': 'audio/wav', 'Content-Length': recording.data.length, ...headers });
       return response.end(request.method === 'HEAD' ? undefined : recording.data);
     }
     const permissionRequest = /^\/twilio\/permission\?attempt=[01]$/u.test(request.url ?? '');
