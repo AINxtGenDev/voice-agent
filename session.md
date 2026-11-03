@@ -1,6 +1,6 @@
 # Session Status
 
-Updated: 2026-10-20 (Europe/Vienna).
+Updated: 2026-11-03 (Europe/Vienna).
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
@@ -25,6 +25,21 @@ Offline suite: 98/98 passing. The user's own untracked files (logo files, `TWILI
 **Next steps (pending the operator):**
 1. GDPR decision: the opening no longer tells callers about the written summary, but a report is still written (see below).
 2. Earlier open items: Live drops (cause unknown), reliability of spoken e-mail addresses, upload of the `hpe-quickspecs` skill.
+
+## Log Review: Two Clean Calls — checked 2026-11-03
+
+Server event logs (read-only, running `5d3234f`) show two calls since the last entry, both on saved contacts with HPE Private Cloud AI. Neither had a Live drop, error, rejected audio, silence nudge or idle hangup:
+
+| Date | Consent (confidence) | Stream start → first Live audio | Delegations | Duration (Twilio) | End |
+| --- | --- | --- | ---: | --- | --- |
+| 2026-10-15 | first answer (0.75) | 0.6 s | 7 | 429 s | caller side; `session.closed`, report written |
+| 2026-10-21 | first answer (0.99) | 0.7 s | 4 | 335 s | caller side; `session.closed`, report written |
+
+- In both calls, consent to the start of the stream took 7.6–9 s while the recorded thanks and first question played. The Live session was ready about 2 s after consent.
+- The late `1006` closes on the media and Live sockets come after `session.closed` and `stop.end`, so they are harmless.
+- The 2026-10-21 report has a follow-up-meeting request (preferred times, format, interest). As always, the e-mail address it holds is unverified.
+- The host rebooted on 2026-11-01 at 04:00 CET (cause not checked) and the stack came back on its own.
+- These are the two longest calls so far (7:09 and 5:35). Earlier Live drops happened around 2 minutes in, so the drop issue may be gone, but the cause is still unknown.
 
 ## GPT-Live 1.1 Availability Check — 2026-10-20
 
