@@ -6,7 +6,7 @@ This is a public project status record. Keep credentials, customer information, 
 
 ## Resume Here — 2026-11-03
 
-**State:** no code changes since 2026-10-08. The server still runs `5d3234f` and came back on its own after a host reboot on 2026-11-01. Two more real calls (2026-10-15, 2026-10-21) ran without errors; see the log review below. Re-verified on the server after the 2026-10-08 deployment:
+**State:** `05bcc7a` (Twilio may cache the recordings) was deployed on 2026-11-03 and verified through the public URL; see below. The host came back on its own after a reboot on 2026-11-01. Two more real calls (2026-10-15, 2026-10-21) ran without errors. Re-verified on the server after the 2026-10-08 deployment:
 - 13 recordings are in the container;
 - `MAX_CALL_SECONDS=900`;
 - telephony configured, no call reserved;
@@ -30,7 +30,28 @@ Offline suite: 98/98 passing. The user's own untracked files (logo files, `TWILI
    - Reliability of spoken e-mail addresses.
    - Upload of the `hpe-quickspecs` skill.
    - Measure the real per-call cost.
-4. Optional: the 7.6–9 s from consent to the start of the stream is now the longest wait. The reviewer's earlier suggestion (play the clips over the stream) would shorten it.
+4. After the next call: check in Twilio's request log whether the "Vielen Dank" recording was served from cache.
+
+## Twilio May Cache the Recordings — 2026-11-03
+
+- **Goal:** a shorter wait after "Ja". Measured first, from Twilio's per-call request log for the last 3 calls:
+  - the consent callback takes 241–270 ms;
+  - the "Vielen Dank …" recording is then downloaded in full every time (200, 260–323 ms), never served from cache.
+  - The rest is Twilio's end-of-speech detection, which no log times.
+  - Correction to the log review below: the 7.6–9 s from consent to the start of the stream is the recording itself playing (8.3 s for Private Cloud AI), not silence.
+- **Fix (`05bcc7a`):** each recording is now served at a URL named by its audio hash, with `Cache-Control: public, max-age=31536000, immutable`, an ETag and a fixed `Last-Modified`.
+  - A re-recording gets a new URL, which settles the earlier reason against `immutable`.
+  - The text-named URLs return 404.
+  - Per [TwiML Play](https://www.twilio.com/docs/voice/twiml/play) (reviewed 2026-11-03), Twilio caches "via ETag and Last-Modified headers" and a cache hit "can take 10ms or less". `max-age` is not documented.
+  - Expected saving: up to about 0.3 s after "Ja" and after pickup.
+- **Critical review subagent:** no blockers. The new tests fail on the old code (4 tests). Fixed: `Last-Modified` added, plus an `If-Modified-Since` 304; every recording is fetched in tests; the URLs are checked to be unique; the stale comment is corrected. 98/98 offline tests pass (one browser-permission timing test in `live-conversation` failed once and passed on rerun; it is unrelated).
+- **Deployed 2026-11-03 at the operator's request** (rollback: `5d3234f`). Verified through the public URL:
+  - 200 with the new headers, byte-identical to Git;
+  - `If-None-Match` returns 304;
+  - the old URL returns 404;
+  - the UI without login returns 401 and an unsigned callback 403;
+  - telephony is configured with no call reserved, and `MAX_CALL_SECONDS=900`.
+- **Not yet verified:** whether Twilio actually serves from cache. The reviewer noted the old ETag never led to a 304 either; Twilio's cache proxies may simply be cold after only a few calls. **Next:** after the next 1–2 calls, read the call's request log for the audio fetch (`request_duration` well below 260 ms, or no fetch at all).
 
 ## Log Review: Two Clean Calls — checked 2026-11-03
 
