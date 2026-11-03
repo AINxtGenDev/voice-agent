@@ -4,9 +4,9 @@ Updated: 2026-11-03 (Europe/Vienna).
 
 This is a public project status record. Keep credentials, customer information, recipient numbers, message identifiers, private file paths, and operational configuration outside this file and Git. A detailed private handoff has been preserved outside the repository.
 
-## Resume Here — 2026-10-08
+## Resume Here — 2026-11-03
 
-**State:** committed, pushed and deployed (`5d3234f`). Re-verified on the server after deployment:
+**State:** no code changes since 2026-10-08. The server still runs `5d3234f` and came back on its own after a host reboot on 2026-11-01. Two more real calls (2026-10-15, 2026-10-21) ran without errors; see the log review below. Re-verified on the server after the 2026-10-08 deployment:
 - 13 recordings are in the container;
 - `MAX_CALL_SECONDS=900`;
 - telephony configured, no call reserved;
@@ -24,7 +24,13 @@ Offline suite: 98/98 passing. The user's own untracked files (logo files, `TWILI
 
 **Next steps (pending the operator):**
 1. GDPR decision: the opening no longer tells callers about the written summary, but a report is still written (see below).
-2. Earlier open items: Live drops (cause unknown), reliability of spoken e-mail addresses, upload of the `hpe-quickspecs` skill.
+2. Follow-up-meeting request in the 2026-10-21 report: the requested week (from 2026-10-27) has passed. Check whether a proposal was sent, and verify the e-mail address first.
+3. Earlier open items:
+   - Live drops: none in the last three calls, longest 7:09; cause still unknown.
+   - Reliability of spoken e-mail addresses.
+   - Upload of the `hpe-quickspecs` skill.
+   - Measure the real per-call cost.
+4. Optional: the 7.6–9 s from consent to the start of the stream is now the longest wait. The reviewer's earlier suggestion (play the clips over the stream) would shorten it.
 
 ## Log Review: Two Clean Calls — checked 2026-11-03
 
